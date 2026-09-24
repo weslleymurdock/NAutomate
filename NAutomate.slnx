@@ -6,4 +6,7 @@
     <Project Path="src/NAutomate.Web/NAutomate.Web.csproj" />
     <Project Path="src/NAutomate/NAutomate.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NAutomate.Tests/NAutomate.Tests.csproj" />
+  </Folder>
 </Solution>
