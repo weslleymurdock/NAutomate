@@ -2,16 +2,15 @@
 
 ## Recommended implementation order
 
-1. Define stable contracts in NAutomate.Abstractions.
-2. Implement versioned workflow types and JSON serialization in Core.
-3. Implement module registry and `core.echo`.
-4. Implement the execution engine and structured results.
-5. Implement CLI `run`, output, errors, and exit codes.
-6. Implement filesystem workflow storage.
-7. Implement the MAUI CLI process service.
-8. Implement the minimal MudBlazor workflow editor.
-9. Implement streaming execution console.
-10. Verify the complete UI -> JSON -> CLI -> Core -> module -> UI path.
+1. Define stable contracts in NAutomate.Abstractions. ✅
+2. Implement versioned workflow types and JSON serialization in Core. ✅
+3. Implement module registry and `core.echo`. ✅
+4. Implement the execution engine and structured results. ✅
+5. Implement CLI `run`, output, errors, and exit codes. ✅
+6. Implement filesystem workflow storage. ✅
+7. Implement the minimal MudBlazor workflow editor and execution console in Web. ✅
+8. Implement the MAUI CLI process service.
+9. Verify the complete UI -> JSON -> CLI -> Core -> module -> UI path.
 
 ## Constraints
 

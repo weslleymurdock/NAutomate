@@ -1,10 +1,15 @@
 using MudBlazor.Services;
+using NAutomate.Abstractions;
+using NAutomate.Core;
 using NAutomate.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+builder.Services.AddSingleton<IModuleRegistry, ModuleRegistry>();
+builder.Services.AddSingleton<WorkflowEngine>();
+builder.Services.AddSingleton<FileWorkflowStore>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

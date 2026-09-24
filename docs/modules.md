@@ -24,6 +24,10 @@ Conceptually:
 "core.echo" -> EchoModule
 ```
 
+The first implementation is registered by `ModuleRegistry` automatically. New
+precompiled modules can be passed to its constructor or registered explicitly;
+workflow files continue to contain only module IDs and parameter data.
+
 Future packages may contribute additional modules. Do not implement dynamic C# compilation or arbitrary source execution.
 
 ## Module metadata

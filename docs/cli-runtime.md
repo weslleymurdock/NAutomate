@@ -27,6 +27,9 @@ Execution completed successfully.
 
 stdout carries status/output. stderr carries errors.
 
+The current built-in module is `core.echo`; it reads the serializable `message`
+parameter and emits its value as an `[OUTPUT]` line.
+
 Exit codes:
 
 - 0: successful workflow execution.
