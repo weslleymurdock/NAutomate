@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NAutomate.CLI/NAutomate.CLI.csproj" />
+    <Project Path="src/NAutomate/NAutomate.csproj" />
+  </Folder>
+</Solution>
