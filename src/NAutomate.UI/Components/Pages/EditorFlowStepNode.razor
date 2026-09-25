@@ -22,15 +22,16 @@
                 <MudText Typo="Typo.caption">@MainBranchLabel</MudText>
             </div>
 
-            <div class="workflow-dropzone"
+            <div class="workflow-dropzone workflow-dropzone-between"
                  @ondragover:preventDefault="true"
-                 @ondrop="@(args => DropAsync(false))">
+                 @ondrop="@(() => DropAsync(false, 0))">
                 <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
-                <MudText Typo="Typo.caption">Drop a step into @MainBranchLabel</MudText>
+                <MudText Typo="Typo.caption">Drop here</MudText>
             </div>
 
-            @foreach (var child in Step.Children)
+            @for (var index = 0; index < Step.Children.Count; index++)
             {
+                var child = Step.Children[index];
                 <EditorFlowStepNode Step="child"
                                     ActiveStepId="@ActiveStepId"
                                     Disabled="@Disabled"
@@ -38,6 +39,12 @@
                                     OnRemoved="OnRemoved"
                                     OnAddChild="OnAddChild"
                                     OnDropChild="OnDropChild" />
+                <div class="workflow-dropzone workflow-dropzone-between"
+                     @ondragover:preventDefault="true"
+                     @ondrop="@(() => DropAsync(false, index + 1))">
+                    <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
+                    <MudText Typo="Typo.caption">Drop here</MudText>
+                </div>
             }
         </div>
 
@@ -48,15 +55,16 @@
                     <MudText Typo="Typo.caption">ELSE</MudText>
                 </div>
 
-                <div class="workflow-dropzone"
+                <div class="workflow-dropzone workflow-dropzone-between"
                      @ondragover:preventDefault="true"
-                     @ondrop="@(args => DropAsync(true))">
+                     @ondrop="@(() => DropAsync(true, 0))">
                     <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
-                    <MudText Typo="Typo.caption">Drop a step into ELSE</MudText>
+                    <MudText Typo="Typo.caption">Drop here</MudText>
                 </div>
 
-                @foreach (var child in Step.ElseChildren)
+                @for (var index = 0; index < Step.ElseChildren.Count; index++)
                 {
+                    var child = Step.ElseChildren[index];
                     <EditorFlowStepNode Step="child"
                                         ActiveStepId="@ActiveStepId"
                                         Disabled="@Disabled"
@@ -64,6 +72,12 @@
                                         OnRemoved="OnRemoved"
                                         OnAddChild="OnAddChild"
                                         OnDropChild="OnDropChild" />
+                    <div class="workflow-dropzone workflow-dropzone-between"
+                         @ondragover:preventDefault="true"
+                         @ondrop="@(() => DropAsync(true, index + 1))">
+                        <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
+                        <MudText Typo="Typo.caption">Drop here</MudText>
+                    </div>
                 }
             </div>
         }
@@ -77,7 +91,7 @@
     [Parameter] public EventCallback<EditorFlowStep> OnSelected { get; set; }
     [Parameter] public EventCallback<EditorFlowStep> OnRemoved { get; set; }
     [Parameter] public EventCallback<(EditorFlowStep Parent, bool ElseBranch)> OnAddChild { get; set; }
-    [Parameter] public EventCallback<(EditorFlowStep Parent, bool ElseBranch)> OnDropChild { get; set; }
+    [Parameter] public EventCallback<(EditorFlowStep Parent, bool ElseBranch, int Index)> OnDropChild { get; set; }
 
     private string MainBranchLabel => Step.Kind == WorkflowStepKind.If ? "THEN" : "BODY";
 
@@ -107,5 +121,5 @@
     private Task SelectAsync() => OnSelected.InvokeAsync(Step);
     private Task RemoveAsync() => OnRemoved.InvokeAsync(Step);
     private Task AddChildAsync(bool elseBranch) => OnAddChild.InvokeAsync((Step, elseBranch));
-    private Task DropAsync(bool elseBranch) => OnDropChild.InvokeAsync((Step, elseBranch));
+    private Task DropAsync(bool elseBranch, int index) => OnDropChild.InvokeAsync((Step, elseBranch, index));
 }
