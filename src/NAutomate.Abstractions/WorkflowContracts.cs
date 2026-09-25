@@ -17,11 +17,13 @@ public sealed class AutomationServiceAttribute(
 public sealed class AutomationOperationAttribute(
     string id,
     string displayName,
-    string description) : Attribute
+    string description,
+bool workflowInvocable = true) : Attribute
 {
     public string Id { get; } = id;
     public string DisplayName { get; } = displayName;
     public string Description { get; } = description;
+    public bool WorkflowInvocable { get; } = workflowInvocable;
 }
 
 [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
