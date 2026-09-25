@@ -19,7 +19,14 @@ public sealed class AutomationProjectSettings
 public sealed class AutomationEnvironmentFile
 {
     public int SchemaVersion { get; set; } = 1;
-    public Dictionary<string, Dictionary<string, JsonElement>> Environments { get; set; } =
+    public Dictionary<string, AutomationEnvironmentDefinition> Environments { get; set; } =
+        new(StringComparer.Ordinal);
+}
+
+public sealed class AutomationEnvironmentDefinition
+{
+    public string Name { get; set; } = string.Empty;
+    public Dictionary<string, JsonElement> Values { get; set; } =
         new(StringComparer.Ordinal);
 }
 
