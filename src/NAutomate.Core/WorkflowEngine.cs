@@ -15,7 +15,9 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
     internal WorkflowVariableStore CreateVariableStore(
         AutomationWorkflow workflow,
         AutomationEnvironment? environment) =>
-        new(workflow.Variables, AutomationWorkflowVariables.CreateValues(workflow, environment?.Values));
+        new(workflow.Variables, AutomationWorkflowVariables.CreateValues(
+            workflow,
+            environment?.Values.ToDictionary(x => x.Key, x => (object?)x.Value, StringComparer.Ordinal)));
 
     public Task<WorkflowExecutionResult> ExecuteAsync(
         AutomationWorkflow workflow,
