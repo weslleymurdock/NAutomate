@@ -52,7 +52,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
                 }
 
                 var manifest = await ReadManifestAsync(manifestPath, cancellationToken);
-                var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: false);
+                var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
                 projects.Add(ToInfo(manifest, directory, validation));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -106,7 +106,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     {
         var directory = FindProjectDirectory(projectId);
         var manifest = await ReadManifestAsync(Path.Combine(directory, ProjectFileName), cancellationToken);
-        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
+        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: false);
         return ToInfo(manifest, directory, validation);
     }
 
@@ -116,7 +116,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     {
         var directory = FindProjectDirectory(projectId);
         var manifest = await ReadManifestAsync(Path.Combine(directory, ProjectFileName), cancellationToken);
-        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
+        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: false);
         if (!validation.IsValid)
             throw new InvalidDataException(
                 $"Project '{manifest.Name}' is not valid: {string.Join(" ", validation.Errors)}");
