@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Globalization;
 using NAutomate.Abstractions;
+using NAutomate.Abstractions.Projects;
 using NAutomate.Parser;
 
 namespace NAutomate.Core;
@@ -67,12 +68,13 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
         IWorkflowVariableStore variables,
         AutomationEnvironment? environment,
         IExecutionEventSink sink,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AutomationProjectSettings? settings = null)
     {
         foreach (var step in steps)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await ExecuteStepAsync(workflow, step, variables, environment, sink, cancellationToken);
+            await ExecuteStepAsync(workflow, step, variables, environment, sink, cancellationToken, settings);
         }
     }
 
@@ -82,7 +84,8 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
         IWorkflowVariableStore variables,
         AutomationEnvironment? environment,
         IExecutionEventSink sink,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AutomationProjectSettings? settings = null)
     {
         switch (step)
         {
@@ -93,7 +96,7 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
                 await sink.OnEventAsync(new("branch-selected", Message: result ? "then" : "else", StepId: step.Id), cancellationToken);
                 var branch = result ? ifStep.Then : ifStep.Else;
                 if (branch is not null)
-                    await ExecuteStepsAsync(workflow, branch, variables, environment, sink, cancellationToken);
+                    await ExecuteStepsAsync(workflow, branch, variables, environment, sink, cancellationToken, settings);
                 break;
             }
             case ForStep forStep:
@@ -109,7 +112,7 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
                     cancellationToken.ThrowIfCancellationRequested();
                     variables.Set(forStep.Variable, value);
                     await sink.OnEventAsync(new("loop-iteration-started", Message: value.ToString(CultureInfo.InvariantCulture), StepId: step.Id), cancellationToken);
-                    await ExecuteStepsAsync(workflow, forStep.Body, variables, environment, sink, cancellationToken);
+                    await ExecuteStepsAsync(workflow, forStep.Body, variables, environment, sink, cancellationToken, settings);
                     await sink.OnEventAsync(new("loop-iteration-completed", Message: value.ToString(CultureInfo.InvariantCulture), StepId: step.Id), cancellationToken);
                     if (++iterations > DefaultWhileIterationLimit)
                         throw new InvalidOperationException($"For step '{step.Id}' exceeded the execution iteration limit.");
@@ -132,7 +135,7 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
                         cancellationToken.ThrowIfCancellationRequested();
                         variables.Set(foreachStep.ItemVariable, item);
                         await sink.OnEventAsync(new("loop-iteration-started", StepId: step.Id), cancellationToken);
-                        await ExecuteStepsAsync(workflow, foreachStep.Body, variables, environment, sink, cancellationToken);
+                        await ExecuteStepsAsync(workflow, foreachStep.Body, variables, environment, sink, cancellationToken, settings);
                         await sink.OnEventAsync(new("loop-iteration-completed", StepId: step.Id), cancellationToken);
                     }
                 }
@@ -157,7 +160,7 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
                         throw new InvalidOperationException($"While step '{step.Id}' exceeded the maximum iteration limit of {maxIterations}.");
 
                     await sink.OnEventAsync(new("loop-iteration-started", Message: iteration.ToString(CultureInfo.InvariantCulture), StepId: step.Id), cancellationToken);
-                    await ExecuteStepsAsync(workflow, whileStep.Body, variables, environment, sink, cancellationToken);
+                    await ExecuteStepsAsync(workflow, whileStep.Body, variables, environment, sink, cancellationToken, settings);
                     await sink.OnEventAsync(new("loop-iteration-completed", Message: iteration.ToString(CultureInfo.InvariantCulture), StepId: step.Id), cancellationToken);
                     iteration++;
                 }
@@ -183,7 +186,7 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
                 break;
             }
             default:
-                await ExecuteModuleAsync(workflow, step, variables, environment, sink, cancellationToken);
+                await ExecuteModuleAsync(workflow, step, variables, environment, sink, cancellationToken, settings);
                 break;
         }
     }
@@ -194,7 +197,8 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
         IWorkflowVariableStore variables,
         AutomationEnvironment? environment,
         IExecutionEventSink sink,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AutomationProjectSettings? settings)
     {
         var module = registry.Resolve(step.Module ?? throw new InvalidDataException($"Step '{step.Id}' has no module id."));
         var environmentParameters = EnvironmentVariableResolver.ResolveParameters(step, environment);
@@ -204,7 +208,7 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
             StringComparer.Ordinal);
 
         await sink.OnEventAsync(new("running", module.Descriptor.Id, StepId: step.Id), cancellationToken);
-        var result = await module.ExecuteAsync(new(workflow, step, parameters, cancellationToken, environment, variables));
+        var result = await module.ExecuteAsync(new(workflow, step, parameters, cancellationToken, environment, variables, settings));
 
         if (!result.Succeeded)
         {
