@@ -23,10 +23,7 @@
         foreach (var status in DependencyStatusStore.Statuses.Where(x => !x.IsAvailable && x.Dependency.Required))
         {
             var message = $"{status.Dependency.DisplayName} is not available. {status.Dependency.ConfigurationHint}".Trim();
-            Snackbar.Add(message, Severity.Warning, options =>
-            {
-                options.RequireInteraction = true;
-            }, $"dependency:{status.Dependency.Id}");
+            Snackbar.Add(message, Severity.Warning, key: $"dependency:{status.Dependency.Id}");
         }
     }
 
