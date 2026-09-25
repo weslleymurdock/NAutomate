@@ -2,8 +2,6 @@ namespace NAutomate.Modules.Appium;
 
 public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumService
 {
-    AppiumDriver Driver { get; }
-
     protected override IOSDriver CreateDriver(Uri serverUrl, AppiumOptions options) =>
         new(serverUrl, options);
 
