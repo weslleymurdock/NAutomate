@@ -827,9 +827,9 @@ public static class AppiumModule
 {
     public static IReadOnlyList<IAutomationModule> GetModules()
     {
-        // Session creation is intentionally supplied by the host. A concrete driver
-        // cannot be created safely until the workflow provides the target endpoint
-        // and platform capabilities.
-        return [];
+        var android = new AndroidAppiumService();
+        var ios = new IOSAppiumService();
+
+        return AppiumOperationInvoker.CreateModules(android, ios);
     }
 }
