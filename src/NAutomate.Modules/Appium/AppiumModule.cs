@@ -289,7 +289,10 @@ public abstract class AppiumServiceBase<TDriver> where TDriver : AppiumDriver
     private int _nextElementId;
     private TDriver? _driver;
 
-    public TDriver Driver =>
+    public AppiumDriver Driver =>
+        _driver ?? throw new InvalidOperationException("No Appium session is active.");
+
+    protected TDriver TypedDriver =>
         _driver ?? throw new InvalidOperationException("No Appium session is active.");
 
     protected abstract TDriver CreateDriver(Uri serverUrl, AppiumOptions options);
@@ -366,10 +369,10 @@ public abstract class AppiumServiceBase<TDriver> where TDriver : AppiumDriver
     public void Quit() => Driver.Quit();
 
     public string FindElement(string strategy, string value) =>
-        StoreElement(Driver.FindElement(CreateSelector(strategy, value)));
+        StoreElement(TypedDriver.FindElement(CreateSelector(strategy, value)));
 
     public IReadOnlyList<string> FindElements(string strategy, string value) =>
-        Driver.FindElements(CreateSelector(strategy, value))
+        TypedTypedDriver.FindElements(CreateSelector(strategy, value))
             .Select(StoreElement)
             .ToArray();
 
@@ -388,69 +391,69 @@ public abstract class AppiumServiceBase<TDriver> where TDriver : AppiumDriver
 
     public bool IsEnabled(string elementId) => ResolveElement(elementId).Enabled;
 
-    public void InstallApp(string appPath) => Driver.InstallApp(appPath);
+    public void InstallApp(string appPath) => TypedDriver.InstallApp(appPath);
 
-    public void RemoveApp(string appId) => Driver.RemoveApp(appId);
+    public void RemoveApp(string appId) => TypedDriver.RemoveApp(appId);
 
-    public void ActivateApp(string appId) => Driver.ActivateApp(appId);
+    public void ActivateApp(string appId) => TypedDriver.ActivateApp(appId);
 
-    public bool TerminateApp(string appId) => Driver.TerminateApp(appId);
+    public bool TerminateApp(string appId) => TypedDriver.TerminateApp(appId);
 
-    public bool IsAppInstalled(string appId) => Driver.IsAppInstalled(appId);
+    public bool IsAppInstalled(string appId) => TypedDriver.IsAppInstalled(appId);
 
-    public string PullFile(string pathOnDevice) => Convert.ToBase64String(Driver.PullFile(pathOnDevice));
+    public string PullFile(string pathOnDevice) => Convert.ToBase64String(TypedDriver.PullFile(pathOnDevice));
 
     public void PushFile(string pathOnDevice, string base64Data) =>
-        Driver.PushFile(pathOnDevice, Convert.FromBase64String(base64Data));
+        TypedDriver.PushFile(pathOnDevice, Convert.FromBase64String(base64Data));
 
     public void BackgroundApp(int seconds = -1) =>
-        Driver.BackgroundApp(TimeSpan.FromSeconds(seconds));
+        TypedDriver.BackgroundApp(TimeSpan.FromSeconds(seconds));
 
-    public void HideKeyboard() => Driver.HideKeyboard();
+    public void HideKeyboard() => TypedDriver.HideKeyboard();
 
-    public bool IsKeyboardShown() => Driver.IsKeyboardShown();
+    public bool IsKeyboardShown() => TypedDriver.IsKeyboardShown();
 
-    public string StartRecordingScreen() => Driver.StartRecordingScreen();
+    public string StartRecordingScreen() => TypedDriver.StartRecordingScreen();
 
-    public string StopRecordingScreen() => Driver.StopRecordingScreen();
+    public string StopRecordingScreen() => TypedDriver.StopRecordingScreen();
 
     public IReadOnlyDictionary<string, object> GetEvents(string? type = null) =>
-        Driver.GetEvents(type);
+        TypedDriver.GetEvents(type);
 
     public void LogEvent(string vendorName, string eventName) =>
-        Driver.LogEvent(vendorName, eventName);
+        TypedDriver.LogEvent(vendorName, eventName);
 
     public object? ExecuteCustomDriverCommand(
         string commandName,
         IReadOnlyDictionary<string, object?>? parameters = null) =>
-        Driver.ExecuteCustomDriverCommand(
+        TypedDriver.ExecuteCustomDriverCommand(
             commandName,
             parameters is null ? null : new Dictionary<string, object>(parameters
                 .Where(x => x.Value is not null)
                 .ToDictionary(x => x.Key, x => x.Value!)));
 
-    public object? GetSessionDetail(string detail) => Driver.GetSessionDetail(detail);
+    public object? GetSessionDetail(string detail) => TypedDriver.GetSessionDetail(detail);
 
-    public string GetPageSource() => Driver.PageSource;
+    public string GetPageSource() => TypedDriver.PageSource;
 
-    public string GetCurrentUrl() => Driver.Url;
+    public string GetCurrentUrl() => TypedDriver.Url;
 
-    public string GetTitle() => Driver.Title;
+    public string GetTitle() => TypedDriver.Title;
 
     public object? ExecuteScript(
         string script,
         IReadOnlyDictionary<string, object?>? arguments = null) =>
         arguments is null
-            ? Driver.ExecuteScript(script)
-            : Driver.ExecuteScript(
+            ? TypedDriver.ExecuteScript(script)
+            : TypedDriver.ExecuteScript(
                 script,
                 arguments.ToDictionary(x => x.Key, x => x.Value));
 
-    public IReadOnlyList<string> GetContexts() => Driver.Contexts.ToArray();
+    public IReadOnlyList<string> GetContexts() => TypedTypedDriver.Contexts.ToArray();
 
-    public void SetContext(string contextName) => Driver.Context = contextName;
+    public void SetContext(string contextName) => TypedDriver.Context = contextName;
 
-    public string GetScreenshot() => Convert.ToBase64String(Driver.GetScreenshot().AsByteArray);
+    public string GetScreenshot() => Convert.ToBase64String(TypedDriver.GetScreenshot().AsByteArray);
 
 
 }
@@ -477,69 +480,69 @@ public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAn
         string? package = null,
         string[][]? extras = null,
         string? flags = null) =>
-        Driver.StartActivity(intent, arguments, user, wait, stop, windowingMode, activityType, action, uri,
+        TypedDriver.StartActivity(intent, arguments, user, wait, stop, windowingMode, activityType, action, uri,
             mimeType, identifier, categories, component, package, extras, flags);
 
-    public void PressKeyCode(int keyCode, int metastate = -1) => Driver.PressKeyCode(keyCode, metastate);
+    public void PressKeyCode(int keyCode, int metastate = -1) => TypedDriver.PressKeyCode(keyCode, metastate);
 
     public void LongPressKeyCode(int keyCode, int metastate = -1) =>
-        Driver.LongPressKeyCode(keyCode, metastate);
+        TypedDriver.LongPressKeyCode(keyCode, metastate);
 
-    public void ToggleLocationServices() => Driver.ToggleLocationServices();
+    public void ToggleLocationServices() => TypedDriver.ToggleLocationServices();
 
     public void MakeGsmCall(string phoneNumber, GsmCallActions gsmCallAction) =>
-        Driver.MakeGsmCall(phoneNumber, gsmCallAction);
+        TypedDriver.MakeGsmCall(phoneNumber, gsmCallAction);
 
-    public void SendSms(string phoneNumber, string message) => Driver.SendSms(phoneNumber, message);
+    public void SendSms(string phoneNumber, string message) => TypedDriver.SendSms(phoneNumber, message);
 
     public void SetGsmSignalStrength(GsmSignalStrength gsmSignalStrength) =>
-        Driver.SetGsmSignalStrength(gsmSignalStrength);
+        TypedDriver.SetGsmSignalStrength(gsmSignalStrength);
 
-    public void SetGsmVoice(GsmVoiceState gsmVoiceState) => Driver.SetGsmVoice(gsmVoiceState);
+    public void SetGsmVoice(GsmVoiceState gsmVoiceState) => TypedDriver.SetGsmVoice(gsmVoiceState);
 
-    public void OpenNotifications() => Driver.OpenNotifications();
+    public void OpenNotifications() => TypedDriver.OpenNotifications();
 
-    public IDictionary<string, object> GetSystemBars() => Driver.GetSystemBars();
+    public IDictionary<string, object> GetSystemBars() => TypedDriver.GetSystemBars();
 
-    public float GetDisplayDensity() => Driver.GetDisplayDensity();
+    public float GetDisplayDensity() => TypedDriver.GetDisplayDensity();
 
     public IReadOnlyList<object> GetPerformanceData(
         string packageName,
         string performanceDataType,
         int dataReadAttempts = 1) =>
-        Driver.GetPerformanceData(packageName, performanceDataType, dataReadAttempts);
+        TypedDriver.GetPerformanceData(packageName, performanceDataType, dataReadAttempts);
 
-    public IReadOnlyList<string> GetPerformanceDataTypes() => Driver.GetPerformanceDataTypes();
+    public IReadOnlyList<string> GetPerformanceDataTypes() => TypedDriver.GetPerformanceDataTypes();
 
-    public void Lock(int? seconds = null) => Driver.Lock(seconds);
+    public void Lock(int? seconds = null) => TypedDriver.Lock(seconds);
 
-    public bool IsLocked() => Driver.IsLocked();
+    public bool IsLocked() => TypedDriver.IsLocked();
 
     public void Unlock(string key, string type, string? strategy = null, int? timeoutMs = null) =>
-        Driver.Unlock(key, type, strategy, timeoutMs);
+        TypedDriver.Unlock(key, type, strategy, timeoutMs);
 
-    public void SetSetting(string setting, object value) => Driver.SetSetting(setting, value);
+    public void SetSetting(string setting, object value) => TypedDriver.SetSetting(setting, value);
 
-    public void IgnoreUnimportantViews(bool compress) => Driver.IgnoreUnimportantViews(compress);
+    public void IgnoreUnimportantViews(bool compress) => TypedDriver.IgnoreUnimportantViews(compress);
 
     public void ConfiguratorSetWaitForIdleTimeout(int timeout) =>
-        Driver.ConfiguratorSetWaitForIdleTimeout(timeout);
+        TypedDriver.ConfiguratorSetWaitForIdleTimeout(timeout);
 
     public void ConfiguratorSetWaitForSelectorTimeout(int timeout) =>
-        Driver.ConfiguratorSetWaitForSelectorTimeout(timeout);
+        TypedDriver.ConfiguratorSetWaitForSelectorTimeout(timeout);
 
     public void ConfiguratorSetScrollAcknowledgmentTimeout(int timeout) =>
-        Driver.ConfiguratorSetScrollAcknowledgmentTimeout(timeout);
+        TypedDriver.ConfiguratorSetScrollAcknowledgmentTimeout(timeout);
 
     public void ConfiguratorSetKeyInjectionDelay(int delay) =>
-        Driver.ConfiguratorSetKeyInjectionDelay(delay);
+        TypedDriver.ConfiguratorSetKeyInjectionDelay(delay);
 
     public void ConfiguratorSetActionAcknowledgmentTimeout(int timeout) =>
-        Driver.ConfiguratorSetActionAcknowledgmentTimeout(timeout);
+        TypedDriver.ConfiguratorSetActionAcknowledgmentTimeout(timeout);
 
-    public string CurrentActivity => Driver.CurrentActivity;
+    public string CurrentActivity => TypedDriver.CurrentActivity;
 
-    public string CurrentPackage => Driver.CurrentPackage;
+    public string CurrentPackage => TypedDriver.CurrentPackage;
 }
 
 public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumService
@@ -549,20 +552,20 @@ public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumS
 
     public void SetSetting(string setting, object value) => Driver.SetSetting(setting, value);
 
-    public void ShakeDevice() => Driver.ShakeDevice();
+    public void ShakeDevice() => TypedDriver.ShakeDevice();
 
-    public void HideKeyboard(string key) => Driver.HideKeyboard(key);
+    public void HideKeyboard(string key) => TypedDriver.HideKeyboard(key);
 
-    public void PerformTouchID(bool match) => Driver.PerformTouchID(match);
+    public void PerformTouchID(bool match) => TypedDriver.PerformTouchID(match);
 
     public void InstallApp(string appPath, int? timeoutMs = null) =>
-        Driver.InstallApp(appPath, timeoutMs);
+        TypedDriver.InstallApp(appPath, timeoutMs);
 
     public void LaunchAppWithArguments(
         string bundleId,
         IReadOnlyCollection<string>? processArguments = null,
         IDictionary<string, string>? environmentVariables = null) =>
-        Driver.LaunchAppWithArguments(bundleId, processArguments, environmentVariables);
+        TypedDriver.LaunchAppWithArguments(bundleId, processArguments, environmentVariables);
 
     public bool IsLocked() => Driver.IsLocked();
 
@@ -570,16 +573,16 @@ public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumS
 
     public void Unlock() => Driver.Unlock();
 
-    public void SetClipboardUrl(string url) => Driver.SetClipboardUrl(url);
+    public void SetClipboardUrl(string url) => TypedDriver.SetClipboardUrl(url);
 
-    public string GetClipboardUrl() => Driver.GetClipboardUrl();
+    public string GetClipboardUrl() => TypedDriver.GetClipboardUrl();
 
-    public AppState GetAppState(string bundleId) => Driver.GetAppState(bundleId);
+    public AppState GetAppState(string bundleId) => TypedDriver.GetAppState(bundleId);
 
     public Task StartSyslogBroadcast(string host = "127.0.0.1", int port = 4723) =>
-        Driver.StartSyslogBroadcast(host, port);
+        TypedDriver.StartSyslogBroadcast(host, port);
 
-    public Task StopSyslogBroadcast() => Driver.StopSyslogBroadcast();
+    public Task StopSyslogBroadcast() => TypedDriver.StopSyslogBroadcast();
 }
 
 public static class AndroidAppiumSessionFactory
