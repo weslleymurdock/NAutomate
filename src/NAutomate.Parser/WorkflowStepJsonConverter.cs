@@ -62,6 +62,9 @@ internal sealed class WorkflowStepJsonConverter : JsonConverter<WorkflowStep>
                 root.TryGetProperty("operation", out var operation)
                     ? Enum.Parse<WorkflowSetOperation>(operation.GetString() ?? string.Empty, true)
                     : WorkflowSetOperation.Set),
+            WorkflowStepKind.Exit => new ExitStep(
+                id,
+                root.TryGetProperty("exitCode", out var exitCode) ? exitCode.GetInt32() : 0),
             _ => throw new JsonException($"Unsupported workflow step type '{kind}'.")
         };
     }
@@ -121,6 +124,10 @@ internal sealed class WorkflowStepJsonConverter : JsonConverter<WorkflowStep>
                     JsonSerializer.Serialize(writer, setStep.Value, options);
                 }
                 break;
+            case ExitStep exitStep:
+                writer.WriteString("type", "exit");
+                writer.WriteNumber("exitCode", exitStep.ExitCode);
+                break;
             default:
                 writer.WriteString("type", "module");
                 writer.WriteString("module", value.Module);
@@ -146,6 +153,7 @@ internal sealed class WorkflowStepJsonConverter : JsonConverter<WorkflowStep>
             "foreach" => WorkflowStepKind.Foreach,
             "while" => WorkflowStepKind.While,
             "set" => WorkflowStepKind.Set,
+            "exit" => WorkflowStepKind.Exit,
             _ => throw new JsonException($"Unsupported workflow step type '{value}'.")
         };
 }
