@@ -1,5 +1,9 @@
 @page "/editor"
 @rendermode InteractiveServer
+@using NAutomate.Abstractions
+@inject IModuleRegistry ModuleRegistry
+@inject WorkflowEngine WorkflowEngine
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 @inject IExecutionEnvironmentStore EnvironmentStore
 
