@@ -15,12 +15,14 @@ internal static class SeleniumOperationInvoker
     public static IReadOnlyList<IAutomationModule> CreateModules(
         IChromeSeleniumService chrome,
         IFirefoxSeleniumService firefox,
-        IEdgeSeleniumService edge)
+        IEdgeSeleniumService edge,
+        ISafariSeleniumService safari)
     {
         var modules = new List<IAutomationModule>();
         Add(modules, chrome, typeof(IChromeSeleniumService));
         Add(modules, firefox, typeof(IFirefoxSeleniumService));
         Add(modules, edge, typeof(IEdgeSeleniumService));
+        Add(modules, safari, typeof(ISafariSeleniumService));
         return modules;
     }
 
