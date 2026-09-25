@@ -1,3 +1,7 @@
+using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Android;
+using OpenQA.Selenium.Appium.iOS;
+using OpenQA.Selenium.Appium.Enums;
 namespace NAutomate.Modules.Appium;
 
 public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAndroidAppiumService
