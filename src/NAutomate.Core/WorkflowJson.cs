@@ -7,7 +7,7 @@ namespace NAutomate.Core;
 /// <summary>Reads and writes the versioned declarative workflow format.</summary>
 public static class WorkflowJson
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
@@ -24,6 +24,15 @@ public static class WorkflowJson
         {
             var workflow = JsonSerializer.Deserialize<AutomationWorkflow>(json, Options)
                 ?? throw new InvalidDataException("Workflow JSON is empty.");
+            if (workflow.SchemaVersion == 1)
+            {
+                workflow = workflow with
+                {
+                    SchemaVersion = CurrentSchemaVersion,
+                    Variables = workflow.Variables ?? []
+                };
+            }
+
             Validate(workflow);
             return workflow;
         }
@@ -53,6 +62,18 @@ public static class WorkflowJson
             throw new InvalidDataException("Every workflow step requires an id and module.");
         if (workflow.Steps.Any(step => step.Parameters is null))
             throw new InvalidDataException("Every workflow step requires a parameters object.");
+
+        var variables = workflow.Variables ?? [];
+        if (variables.Any(variable => string.IsNullOrWhiteSpace(variable.Name)))
+            throw new InvalidDataException("Every workflow variable requires a name.");
+
+        if (variables.Any(variable =>
+            variable.Scope == AutomationVariableScope.Local &&
+            string.IsNullOrWhiteSpace(variable.StepId)))
+            throw new InvalidDataException("Local workflow variables require a step id.");
+
+        if (variables.Select(variable => variable.Key).Distinct(StringComparer.Ordinal).Count() != variables.Count)
+            throw new InvalidDataException("Workflow variable keys must be unique.");
         if (workflow.Steps.Select(step => step.Id).Distinct(StringComparer.Ordinal).Count() != workflow.Steps.Count)
             throw new InvalidDataException("Workflow step ids must be unique.");
     }
