@@ -11,6 +11,15 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
         IExecutionEventSink sink,
         CancellationToken cancellationToken = default)
     {
+        return await ExecuteAsync(workflow, sink, null, cancellationToken);
+    }
+
+    public async Task<WorkflowExecutionResult> ExecuteAsync(
+        AutomationWorkflow workflow,
+        IExecutionEventSink sink,
+        AutomationEnvironment? environment,
+        CancellationToken cancellationToken = default)
+    {
         ArgumentNullException.ThrowIfNull(sink);
         WorkflowJson.Validate(workflow);
         await sink.OnEventAsync(new("workflow", Message: $"Workflow: {workflow.Name}"), cancellationToken);
@@ -27,7 +36,7 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
                     cancellationToken);
 
                 var result = await module.ExecuteAsync(
-                    new(workflow, step, step.Parameters, cancellationToken));
+                    new(workflow, step, EnvironmentVariableResolver.ResolveParameters(step, environment), cancellationToken));
 
                 await sink.OnEventAsync(
                     new("output", module.Descriptor.Id, result.Output, step.Id),
