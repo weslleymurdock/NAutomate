@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\NAutomate.Abstractions\NAutomate.Abstractions.csproj" />
     <ProjectReference Include="..\NAutomate.Core\NAutomate.Core.csproj" />
     <ProjectReference Include="..\NAutomate.Parser\NAutomate.Parser.csproj" />
   </ItemGroup>
