@@ -1,0 +1,23 @@
+body { overflow-x: hidden; }
+.automation-editor { display:grid; grid-template-columns:310px minmax(500px,1fr) 300px; height:calc(100vh - 120px); min-height:620px; border:1px solid var(--mud-palette-lines-default); border-radius:14px; overflow:hidden; background:var(--mud-palette-background); }
+.module-sidebar,.step-inspector { overflow:auto; background:var(--mud-palette-surface); }
+.module-sidebar { border-right:1px solid var(--mud-palette-lines-default); }
+.step-inspector { border-left:1px solid var(--mud-palette-lines-default); }
+.method-item { justify-content:flex-start!important; text-align:left!important; min-height:42px; }
+.method-label { display:block; font-size:.82rem; }
+.method-id { display:block; font-size:.65rem; opacity:.55; }
+.flow-canvas { min-width:0; position:relative; overflow:hidden; }
+.canvas-toolbar { display:flex; align-items:center; padding:8px 12px; border-bottom:1px solid var(--mud-palette-lines-default); position:relative; z-index:4; background:var(--mud-palette-surface); }
+.diagram-viewport { position:relative; height:calc(100% - 50px); overflow:auto; background:#101017; }
+.diagram-grid { position:absolute; inset:0; min-width:1800px; min-height:1400px; background-image:radial-gradient(circle,rgba(255,255,255,.11) 1px,transparent 1px); background-size:24px 24px; }
+.diagram-links { position:absolute; inset:0; width:1800px; height:1400px; pointer-events:none; color:var(--mud-palette-primary); z-index:2; }
+.flow-node { position:absolute; width:230px; min-height:105px; padding:10px; border:1px solid var(--mud-palette-primary); border-radius:12px; background:var(--mud-palette-surface); box-shadow:0 8px 28px rgba(0,0,0,.28); cursor:grab; user-select:none; z-index:3; }
+.flow-node:active { cursor:grabbing; }
+.entry-node { border-color:var(--mud-palette-success); }
+.node-toolbar { display:flex; align-items:center; gap:7px; margin-bottom:6px; }
+.node-toolbar .mud-icon-button { margin-left:auto; }
+.node-module { opacity:.6; }
+.project-card { height:100%; transition:transform .15s ease,box-shadow .15s ease; }
+.project-card:hover { transform:translateY(-3px); }
+@media(max-width:1100px){.automation-editor{grid-template-columns:260px minmax(400px,1fr)}.step-inspector{display:none}}
+@media(max-width:800px){.automation-editor{grid-template-columns:1fr;height:auto}.module-sidebar{max-height:380px;border-right:0;border-bottom:1px solid var(--mud-palette-lines-default)}.flow-canvas{min-height:700px}}
