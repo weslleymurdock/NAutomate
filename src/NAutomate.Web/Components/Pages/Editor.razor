@@ -120,7 +120,7 @@
     private string? GetParameter(FlowStep step, string name) => step.Values.TryGetValue(name, out var value) ? value : null;
     private void SetParameter(FlowStep step, string name, string? value) => step.Values[name] = value;
 
-    private async void ResetLayout()
+    private async Task ResetLayout()
     {
         for (var i = 0; i < _steps.Count; i++) { _steps[i].X = 80; _steps[i].Y = 50 + i * 145; }
         await InvokeAsync(StateHasChanged);
