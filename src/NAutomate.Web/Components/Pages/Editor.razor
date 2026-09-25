@@ -302,7 +302,7 @@
             .Where(step => !step.IsEntry)
             .Select(step => new WorkflowStep(
                 step.Id,
-                $"{step.ModuleId}.{step.OperationId}",
+                step.ModuleId,
                 new Dictionary<string, object?>(step.Values, StringComparer.Ordinal)))
             .ToArray();
 
