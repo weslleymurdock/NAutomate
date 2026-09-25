@@ -205,6 +205,9 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         if (string.IsNullOrWhiteSpace(manifest.Name))
             errors.Add("project.json contains an empty project name.");
 
+        if (!string.Equals(manifest.DirectoryName, Path.GetFileName(directory), StringComparison.Ordinal))
+            errors.Add("project.json directoryName does not match the actual project directory.");
+
         foreach (var fileName in new[] { AutomationFileName, SettingsFileName, EnvironmentFileName, ProjectFileName })
         {
             if (!File.Exists(Path.Combine(directory, fileName)))
