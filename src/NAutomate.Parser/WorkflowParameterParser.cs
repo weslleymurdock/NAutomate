@@ -84,7 +84,7 @@ public static class WorkflowParameterParser
         }
     }
 
-    private static Type ResolveType(string typeName)
+    public static Type ResolveType(string typeName)
     {
         var normalized = typeName.Trim();
 

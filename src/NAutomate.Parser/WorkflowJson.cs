@@ -69,6 +69,12 @@ public static class WorkflowJson
 
         var ids = new HashSet<string>(StringComparer.Ordinal);
         ValidateSteps(workflow.Steps, variables, "workflow", ids);
+
+        foreach (var variable in variables.Where(x => x.Scope == AutomationVariableScope.Local))
+        {
+            if (!ids.Contains(variable.StepId!))
+                throw new InvalidDataException($"Local workflow variable '{variable.Key}' references an unknown step '{variable.StepId}'.");
+        }
     }
 
     private static void ValidateVariables(IReadOnlyList<AutomationVariableDefinition> variables)
@@ -86,6 +92,17 @@ public static class WorkflowJson
         {
             if (string.IsNullOrWhiteSpace(variable.Type))
                 throw new InvalidDataException($"Variable '{variable.Name}' requires a type.");
+
+            try
+            {
+                _ = WorkflowParameterParser.ResolveType(variable.Type);
+                if (variable.DefaultValue is not null)
+                    _ = WorkflowParameterParser.Parse(variable.DefaultValue.ToString(), variable.Type);
+            }
+            catch (Exception exception) when (exception is InvalidDataException or FormatException or OverflowException or ArgumentException)
+            {
+                throw new InvalidDataException($"Variable '{variable.Name}' has an invalid type or default value.", exception);
+            }
         }
     }
 
