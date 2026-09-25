@@ -202,7 +202,8 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         try
         {
             var automationJson = await File.ReadAllTextAsync(Path.Combine(directory, AutomationFileName), cancellationToken);
-            WorkflowJson.Validate(WorkflowJson.Deserialize(automationJson));
+            var workflow = WorkflowJson.Deserialize(automationJson);
+            WorkflowJson.Validate(workflow);
 
             var settingsJson = await File.ReadAllTextAsync(Path.Combine(directory, SettingsFileName), cancellationToken);
             var settings = JsonSerializer.Deserialize<AutomationProjectSettings>(settingsJson, JsonOptions);
@@ -212,7 +213,43 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
             var environmentJson = await File.ReadAllTextAsync(Path.Combine(directory, EnvironmentFileName), cancellationToken);
             var environment = JsonSerializer.Deserialize<AutomationEnvironmentFile>(environmentJson, JsonOptions);
             if (environment is null || environment.SchemaVersion != 1)
+            {
                 errors.Add("env.json is invalid.");
+            }
+            else
+            {
+                var variables = (workflow.Variables ?? [])
+                    .Where(x => x.Scope == AutomationVariableScope.Global)
+                    .ToDictionary(x => x.Name, StringComparer.Ordinal);
+
+                foreach (var environmentEntry in environment.Environments)
+                {
+                    if (string.IsNullOrWhiteSpace(environmentEntry.Value.Name))
+                        errors.Add($"Environment '{environmentEntry.Key}' has no name.");
+
+                    foreach (var value in environmentEntry.Value.Values)
+                    {
+                        if (!variables.TryGetValue(value.Key, out var variable))
+                        {
+                            errors.Add($"Environment '{environmentEntry.Key}' contains unknown variable '{value.Key}'.");
+                            continue;
+                        }
+
+                        if (value.Value.ValueKind == JsonValueKind.Null)
+                            continue;
+
+                        try
+                        {
+                            WorkflowParameterParser.Parse(value.Value.ToString(), variable.Type);
+                        }
+                        catch (Exception ex) when (ex is FormatException or InvalidDataException or ArgumentException)
+                        {
+                            errors.Add(
+                                $"Environment '{environmentEntry.Key}' variable '{value.Key}' does not match type '{variable.Type}': {ex.Message}");
+                        }
+                    }
+                }
+            }
 
             if (!string.Equals(manifest.Hashes.Automation, ComputeHash(automationJson), StringComparison.OrdinalIgnoreCase))
                 errors.Add("automation.json hash does not match project.json.");
