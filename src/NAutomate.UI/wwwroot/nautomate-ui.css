@@ -1,7 +1,14 @@
-.editor-shell { height: calc(100vh - 96px); min-height: 0; overflow: hidden; }
+.editor-shell {
+    height: calc(100vh - 96px);
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
 .nautomate-editor {
-    height: calc(100vh - 150px);
-    min-height: 560px;
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
     display: grid;
     grid-template-columns: 250px minmax(0, 1fr) 300px;
     overflow: hidden;
@@ -143,7 +150,6 @@
     touch-action: none;
     user-select: none;
     cursor: grab;
-    cursor: grab;
     border-radius: 8px;
 }
 
@@ -166,13 +172,19 @@
 
 .execution-console {
     margin-top: 8px;
+    flex: 0 0 auto;
+}
+
+.execution-console-drawer {
+    max-height: 264px;
 }
 
 .execution-output {
     margin: 0;
-    min-height: 100px;
-    max-height: 220px;
-    overflow: auto;
+    height: 264px;
+    max-height: 264px;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding: 10px 12px;
     white-space: pre-wrap;
     font-family: Consolas, Monaco, monospace;
@@ -201,5 +213,24 @@
 
     .nautomate-editor .module-sidebar {
         display: none;
+    }
+}
+
+.module-groups {
+    overflow: visible;
+}
+
+.module-palette-item {
+    margin: 2px 6px;
+}
+
+@media (max-width: 800px) {
+    .editor-shell {
+        height: calc(100vh - 80px);
+    }
+
+    .nautomate-editor {
+        height: auto;
+        min-height: 0;
     }
 }
