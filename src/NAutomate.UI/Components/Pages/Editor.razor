@@ -466,6 +466,12 @@
                 return;
             }
 
+            _project = null;
+            _selected = null;
+            _activeStepId = null;
+            _debugSession = null;
+            _debugTask = null;
+            _console = string.Empty;
             var state = await ProjectStore.LoadAsync(ProjectId.Value, CancellationToken.None);
             _project = state.Info;
             _settings = state.Settings;
