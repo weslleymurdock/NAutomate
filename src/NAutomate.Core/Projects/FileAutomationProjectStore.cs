@@ -52,7 +52,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
                 }
 
                 var manifest = await ReadManifestAsync(manifestPath, cancellationToken);
-                var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
+                var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: false);
                 projects.Add(ToInfo(manifest, directory, validation));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -97,18 +97,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         };
 
         await SaveAsync(state, cancellationToken);
-        var validation = await ValidateDirectoryAsync(directory, new AutomationProjectManifest
-        {
-            SchemaVersion = 1,
-            Id = id,
-            Name = name.Trim(),
-            DirectoryName = directoryName,
-            CreatedUtc = now,
-            UpdatedUtc = now,
-            Hashes = new()
-        }, cancellationToken, requireExecutable: true);
-
-        return new AutomationProjectInfo(id, name.Trim(), directoryName, directory, now, now, validation.IsValid, validation.Errors);
+        return await GetAsync(id, cancellationToken);
     }
 
     public async Task<AutomationProjectInfo> GetAsync(
