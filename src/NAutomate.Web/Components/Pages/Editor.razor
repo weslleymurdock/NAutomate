@@ -293,12 +293,12 @@
 
     private AutomationWorkflow BuildWorkflow()
     {
-        var steps = [.. _steps
+        var steps = _steps
             .Where(step => !step.IsEntry)
             .Select(step => new WorkflowStep(
                 step.Id,
                 step.ModuleId,
-                step.Values.ToDictionary(x => x.Key, x => (object?)x.Value, StringComparer.Ordinal)))];
+                step.Values.ToDictionary(x => x.Key, x => (object?)x.Value, StringComparer.Ordinal))).ToArray();
 
         return new AutomationWorkflow(
             WorkflowJson.CurrentSchemaVersion,
