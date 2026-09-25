@@ -207,3 +207,41 @@ There is no static/global execution state. Concurrent executions of the same wor
 The runtime emits facts for control flow, including condition-evaluated, branch-selected, loop-started, loop-iteration-started, loop-iteration-completed, variable-changed, and the existing module running/output/success/failure events.
 
 Hosts can use these events for consoles and debuggers without moving control-flow logic into UI code.
+
+
+## Editor control-flow steps
+
+The web editor exposes workflow control flow as nested blocks instead of a flat list. Select a container and add module steps to its body. IF blocks expose separate THEN and ELSE branches.
+
+Supported declarative control steps are:
+
+- `if`: evaluates a typed condition and executes either `then` or `else`.
+- `for`: iterates a numeric range using `variable`, `from`, `to`, `step`, and `inclusive`.
+- `foreach`: iterates a collection variable and scopes the item variable to the loop.
+- `while`: evaluates its condition before each iteration and enforces `maxIterations`.
+- `set`: assigns, increments, or decrements a workflow variable.
+- `exit`: terminates execution immediately. `exitCode: 0` is a successful termination; a non-zero exit code produces a failed execution.
+
+Example:
+
+```json
+{
+  "id": "exit-on-error",
+  "type": "if",
+  "condition": {
+    "variable": "Value",
+    "operator": "LessThan",
+    "value": 0
+  },
+  "then": [
+    {
+      "id": "stop",
+      "type": "exit",
+      "exitCode": 1
+    }
+  ],
+  "else": []
+}
+```
+
+The editor's Execution Environment panel lets each environment hold the initial value of global variables. These values are converted to the variable's declared type when an execution starts. Module parameters and control-flow values support exact `$Variable` / `@Variable` references as well as embedded textual references.
