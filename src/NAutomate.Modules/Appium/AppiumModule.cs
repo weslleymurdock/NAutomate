@@ -243,13 +243,13 @@ public interface IIOSAppiumService : IAppiumService
     [AutomationOperation("shake-device", "Shake Device", "Shakes the iOS simulator/device.")]
     void ShakeDevice();
 
-    [AutomationOperation("hide-keyboard", "Hide Keyboard", "Hides the iOS keyboard using a key.")]
+    [AutomationOperation("hide-keyboard-with-key", "Hide Keyboard With Key", "Hides the iOS keyboard using a key.")]
     void HideKeyboard(string key);
 
     [AutomationOperation("perform-touch-id", "Perform Touch ID", "Performs Touch ID authentication.")]
     void PerformTouchID(bool match);
 
-    [AutomationOperation("install-app", "Install App", "Installs an iOS application.")]
+    [AutomationOperation("install-app-with-timeout", "Install App With Timeout", "Installs an iOS application with an optional timeout.")]
     void InstallApp(string appPath, int? timeoutMs = null);
 
     [AutomationOperation("launch-app-with-arguments", "Launch App With Arguments", "Launches an iOS application with process arguments.")]
