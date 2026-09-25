@@ -14,20 +14,18 @@ public static partial class EnvironmentVariableResolver
 
         return step.Parameters.ToDictionary(
             pair => pair.Key,
-            pair => ResolveValue(pair.Value, step.Id, environment.Values),
+            pair => ResolveValue(pair.Value, environment.Values),
             StringComparer.Ordinal);
     }
 
     public static string ResolveString(
         string value,
-        string stepId,
         IReadOnlyDictionary<string, string?> values)
     {
         return PlaceholderRegex().Replace(value, match =>
         {
             var key = match.Groups["key"].Value;
-            var scopedKey = key.Contains(':', StringComparison.Ordinal) ? key : key;
-            return values.TryGetValue(scopedKey, out var resolved)
+            return values.TryGetValue(key, out var resolved)
                 ? resolved ?? string.Empty
                 : match.Value;
         });
@@ -35,19 +33,18 @@ public static partial class EnvironmentVariableResolver
 
     private static object? ResolveValue(
         object? value,
-        string stepId,
         IReadOnlyDictionary<string, string?> values)
     {
         return value switch
         {
-            string text => ResolveString(text, stepId, values),
+            string text => ResolveString(text, values),
             IReadOnlyDictionary<string, object?> dictionary =>
                 dictionary.ToDictionary(
                     pair => pair.Key,
-                    pair => ResolveValue(pair.Value, stepId, values),
+                    pair => ResolveValue(pair.Value, values),
                     StringComparer.Ordinal),
             IEnumerable<object?> collection =>
-                collection.Select(item => ResolveValue(item, stepId, values)).ToArray(),
+                collection.Select(item => ResolveValue(item, values)).ToArray(),
             _ => value
         };
     }
