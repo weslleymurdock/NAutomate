@@ -65,6 +65,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\NAutomate.Core\NAutomate.Core.csproj" />
+    <ProjectReference Include="..\NAutomate.Parser\NAutomate.Parser.csproj" />
     </ItemGroup>
 
 </Project>
