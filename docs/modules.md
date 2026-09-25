@@ -42,3 +42,27 @@ The following attributes are available to module UI designers:
 - `AutomationParameterAttribute`
 
 They provide stable IDs, display names and descriptions without coupling Core to a UI framework.
+
+
+## Selenium
+
+The official Selenium module is provided by `NAutomate.Modules.Selenium` and uses Selenium.WebDriver 4.49.0. It exposes one stateful service per browser:
+
+- `selenium.chrome`
+- `selenium.firefox`
+- `selenium.edge`
+
+Each service supports session lifecycle, navigation, element lookup and interaction, page metadata, and screenshots. Selenium Manager is used by the local WebDriver constructors, so a workflow does not need to install driver executables manually.
+
+Selenium element references are opaque runtime identifiers. They are held by the service instance and are not persisted into workflow JSON.
+
+## Execution environments
+
+Workflows can declare global and step-local variables. Saved execution environments contain the same variable keys for a given automation, while newly introduced variables are synchronized into every saved environment with an empty value.
+
+Workflow parameters can reference values using:
+
+- `${name}` for global variables.
+- `${stepId:name}` for local variables.
+
+Environment values are persisted separately from workflow JSON under the host application-data directory. The workflow remains declarative; environments only provide runtime values.
