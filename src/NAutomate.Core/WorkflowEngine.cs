@@ -48,6 +48,12 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
             await sink.OnEventAsync(new("cancelled", Message: "Execution cancelled."), CancellationToken.None);
             return new WorkflowExecutionResult(WorkflowExecutionStatus.Cancelled);
         }
+        catch (WorkflowExitException ex)
+        {
+            var status = ex.ExitCode == 0 ? WorkflowExecutionStatus.Success : WorkflowExecutionStatus.Failure;
+            await sink.OnEventAsync(new("completed", Message: $"Execution exited with code {ex.ExitCode}."), CancellationToken.None);
+            return new WorkflowExecutionResult(status, ex.ExitCode == 0 ? null : $"Workflow exited with code {ex.ExitCode}.");
+        }
         catch (Exception ex)
         {
             await sink.OnEventAsync(new("exception", Message: ex.Message), CancellationToken.None);
@@ -157,6 +163,10 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
                 }
                 break;
             }
+            case ExitStep exitStep:
+                await sink.OnEventAsync(new("exit", Message: exitStep.ExitCode.ToString(CultureInfo.InvariantCulture), StepId: step.Id), cancellationToken);
+                throw new WorkflowExitException(exitStep.ExitCode);
+
             case SetStep setStep:
             {
                 var value = WorkflowValueResolver.Resolve(setStep.Value, variables);
