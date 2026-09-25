@@ -70,7 +70,7 @@
     <div class="automation-editor">
         <aside class="module-sidebar">
             <MudText Typo="Typo.subtitle1" Class="pa-3">Services & methods</MudText>
-            <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Dense="true" Class="px-3 pb-3" />
+            <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="px-3 pb-3" />
             @foreach (var module in Modules)
             {
                 <MudExpansionPanel Text="@module.DisplayName" Icon="@ModuleIcon(module.Id)" Dense="true">
@@ -298,7 +298,7 @@
             .Select(step => new WorkflowStep(
                 step.Id,
                 step.ModuleId,
-                new Dictionary<string, object?>(step.Values, StringComparer.Ordinal)))];
+                step.Values.ToDictionary(x => x.Key, x => (object?)x.Value, StringComparer.Ordinal)))];
 
         return new AutomationWorkflow(
             WorkflowJson.CurrentSchemaVersion,
