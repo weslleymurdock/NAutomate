@@ -14,6 +14,7 @@ public sealed class SeleniumModuleTests
         Assert.Contains(modules, module => module.Descriptor.Id == "selenium.firefox.navigate");
         Assert.Contains(modules, module => module.Descriptor.Id == "selenium.edge.screenshot");
         Assert.Contains(modules, module => module.Descriptor.Id == "selenium.chrome.find-element");
+        Assert.Contains(modules, module => module.Descriptor.Id == "selenium.safari.start-session");
     }
 
     [Fact]
