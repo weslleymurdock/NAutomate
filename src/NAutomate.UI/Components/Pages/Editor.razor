@@ -8,7 +8,6 @@
 @using NAutomate.Parser
 @inject IModuleRegistry ModuleRegistry
 @inject WorkflowEngine WorkflowEngine
-@inject IExecutionEnvironmentService EnvironmentService
 @inject IAutomationProjectStore ProjectStore
 @inject NavigationManager Navigation
 
@@ -477,7 +476,9 @@
             foreach (var step in state.Workflow.Steps)
                 _steps.Add(CreateEditorStep(step));
 
-            _nextSequence = _steps.SelectMany(Flatten).Select(x => x.Sequence).DefaultIfEmpty(0).Max() + 1;
+            _nextSequence = 1;
+            foreach (var step in _steps)
+                AssignSequences(step);
 
             _environments = state.Environment.Environments
                 .Select(pair => new AutomationEnvironment(
@@ -557,6 +558,15 @@
         target.Insert(index, step);
         _selected = step;
         return InvokeAsync(StateHasChanged);
+    }
+
+    private void AssignSequences(EditorFlowStep step)
+    {
+        step.Sequence = _nextSequence++;
+        foreach (var child in step.Children)
+            AssignSequences(child);
+        foreach (var child in step.ElseChildren)
+            AssignSequences(child);
     }
 
     private IEnumerable<EditorFlowStep> Flatten(EditorFlowStep step)
