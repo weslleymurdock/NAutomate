@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NAutomate.Abstractions;
+using NAutomate.Parser;
 
 namespace NAutomate.Core;
 
@@ -156,7 +157,7 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
         if (string.IsNullOrWhiteSpace(json))
             return [];
 
-        return JsonSerializer.Deserialize<List<AutomationEnvironment>>(json, JsonOptions) ?? [];
+        return [.. ExecutionEnvironmentJson.Deserialize(json)];
     }
 
     private async Task WriteAsync(
@@ -167,12 +168,8 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
         if (!string.IsNullOrWhiteSpace(directory))
             Directory.CreateDirectory(directory);
 
-        var json = JsonSerializer.Serialize(environments, JsonOptions);
+        var json = ExecutionEnvironmentJson.Serialize(environments);
         await File.WriteAllTextAsync(_path, json, cancellationToken);
     }
 
-    private static JsonSerializerOptions JsonOptions => new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true
-    };
 }
