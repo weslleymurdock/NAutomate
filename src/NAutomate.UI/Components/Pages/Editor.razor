@@ -1106,7 +1106,8 @@
                 WorkflowEngine,
                 workflow,
                 sink,
-                _selectedEnvironment);
+                _selectedEnvironment,
+                _settings);
 
             _debugTask = _debugSession.RunAsync();
             await InvokeAsync(StateHasChanged);
