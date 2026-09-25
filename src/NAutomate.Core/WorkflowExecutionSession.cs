@@ -100,7 +100,7 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
                     token);
 
                 var result = await module.ExecuteAsync(
-                    new(_workflow, step, EnvironmentVariableResolver.ResolveParameters(step, _environment), token));
+                    new(_workflow, step, EnvironmentVariableResolver.ResolveParameters(step, _environment), token, _environment));
 
                 await _sink.OnEventAsync(
                     new("output", module.Descriptor.Id, result.Output, step.Id),
