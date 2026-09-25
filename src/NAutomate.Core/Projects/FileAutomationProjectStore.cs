@@ -55,7 +55,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
                 var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken);
                 projects.Add(ToInfo(manifest, directory, validation));
             }
-            catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is JsonException or InvalidDataException or IOException or UnauthorizedAccessException)
             {
                 projects.Add(new AutomationProjectInfo(
                     Guid.Empty,
