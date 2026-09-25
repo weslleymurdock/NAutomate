@@ -54,4 +54,8 @@ public interface IExecutionEventSink
 }
 
 /// <summary>An execution status or module output event.</summary>
-public sealed record ExecutionEvent(string Kind, string? ModuleId = null, string? Message = null);
+public sealed record ExecutionEvent(
+    string Kind,
+    string? ModuleId = null,
+    string? Message = null,
+    string? StepId = null);

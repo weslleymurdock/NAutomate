@@ -25,6 +25,7 @@ Minimum shape:
 - `schemaVersion` is mandatory.
 - Module identifiers are stable strings.
 - Parameters are serializable data.
+- Every step contains a parameters object; it may be empty when the selected module requires no parameters.
 - Step IDs identify execution records.
 - Do not store C# source, generated code, assemblies, or executable delegates in workflow JSON.
 - Schema changes must be deliberate and documented.

@@ -14,10 +14,10 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var module = registry.Resolve(step.Module);
-            await sink.OnEventAsync(new("running", module.Descriptor.Id), cancellationToken);
+            await sink.OnEventAsync(new("running", module.Descriptor.Id, StepId: step.Id), cancellationToken);
             var result = await module.ExecuteAsync(new(workflow, step, cancellationToken));
-            await sink.OnEventAsync(new("output", module.Descriptor.Id, result.Output), cancellationToken);
-            await sink.OnEventAsync(new("success", module.Descriptor.Id), cancellationToken);
+            await sink.OnEventAsync(new("output", module.Descriptor.Id, result.Output, step.Id), cancellationToken);
+            await sink.OnEventAsync(new("success", module.Descriptor.Id, StepId: step.Id), cancellationToken);
         }
         await sink.OnEventAsync(new("completed", Message: "Execution completed successfully."), cancellationToken);
     }

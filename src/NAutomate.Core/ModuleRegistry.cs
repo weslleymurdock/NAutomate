@@ -16,7 +16,11 @@ public sealed class ModuleRegistry : IModuleRegistry
     public void Register(IAutomationModule module)
     {
         ArgumentNullException.ThrowIfNull(module);
-        _modules[module.Descriptor.Id] = module;
+        ArgumentNullException.ThrowIfNull(module.Descriptor);
+        if (string.IsNullOrWhiteSpace(module.Descriptor.Id))
+            throw new ArgumentException("A module must have a non-empty id.", nameof(module));
+        if (!_modules.TryAdd(module.Descriptor.Id, module))
+            throw new InvalidOperationException($"A module with id '{module.Descriptor.Id}' is already registered.");
     }
 
     public IReadOnlyCollection<ModuleDescriptor> List() => _modules.Values.Select(module => module.Descriptor).ToArray();

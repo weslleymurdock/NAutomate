@@ -20,7 +20,7 @@ public static class CliRunner
             return 0;
         }
         catch (OperationCanceledException) { await error.WriteLineAsync("Execution cancelled."); return 1; }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException or KeyNotFoundException)
+        catch (Exception exception)
         { await error.WriteLineAsync($"Error: {exception.Message}"); return 1; }
     }
 

@@ -28,6 +28,10 @@ The first implementation is registered by `ModuleRegistry` automatically. New
 precompiled modules can be passed to its constructor or registered explicitly;
 workflow files continue to contain only module IDs and parameter data.
 
+Registry IDs are case-insensitive. Empty IDs are invalid, and registering an ID
+that is already present (including a different casing) fails explicitly instead
+of replacing the existing module. Resolving an unknown ID fails deterministically.
+
 Future packages may contribute additional modules. Do not implement dynamic C# compilation or arbitrary source execution.
 
 ## Module metadata

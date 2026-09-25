@@ -12,6 +12,12 @@
 8. Implement the MAUI CLI process service.
 9. Verify the complete UI -> JSON -> CLI -> Core -> module -> UI path.
 
+The runtime test suite covers workflow validation and JSON round-trips, file
+storage, registry determinism, `core.echo`, engine event ordering/failures, and
+the observable CLI stdout/stderr/exit-code contract. A real process-level CLI
+test remains optional until the test harness can resolve the CLI output path
+portably in CI.
+
 ## Constraints
 
 Target .NET 10. Prefer async APIs and CancellationToken. Keep public contracts documented with XML comments. Avoid databases, remote services, brokers, arbitrary code execution, and premature plugin infrastructure in the first milestone.
