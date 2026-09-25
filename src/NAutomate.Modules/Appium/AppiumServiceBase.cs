@@ -53,7 +53,7 @@ public abstract class AppiumServiceBase<TDriver> where TDriver : AppiumDriver
 
         _driver = CreateDriver(new Uri(serverUrl), options);
 
-        return await Task.FromResult(_driver.SessionId);
+        return await Task.FromResult(_driver.SessionId.ToString());
     }
 
     private static void Add(AppiumOptions options, string name, object? value)
@@ -94,7 +94,7 @@ public abstract class AppiumServiceBase<TDriver> where TDriver : AppiumDriver
         StoreElement(TypedDriver.FindElement(CreateSelector(strategy, value)));
 
     public IReadOnlyList<string> FindElements(string strategy, string value) =>
-        TypedTypedDriver.FindElements(CreateSelector(strategy, value))
+        TypedDriver.FindElements(CreateSelector(strategy, value))
             .Select(StoreElement)
             .ToArray();
 
@@ -171,12 +171,9 @@ public abstract class AppiumServiceBase<TDriver> where TDriver : AppiumDriver
                 script,
                 arguments.ToDictionary(x => x.Key, x => x.Value));
 
-    public IReadOnlyList<string> GetContexts() => TypedTypedDriver.Contexts.ToArray();
+    public IReadOnlyList<string> GetContexts() => TypedDriver.Contexts.ToArray();
 
     public void SetContext(string contextName) => TypedDriver.Context = contextName;
 
     public string GetScreenshot() => Convert.ToBase64String(TypedDriver.GetScreenshot().AsByteArray);
-
-
 }
-
