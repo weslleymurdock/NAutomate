@@ -5,7 +5,11 @@
 
 <PageTitle>Projects</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="pa-6">\n    @if (!string.IsNullOrWhiteSpace(_error))\n    {\n        <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>\n    }
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-6">
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+    }
     <MudStack Spacing="4">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
             <div>
