@@ -222,13 +222,3 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
 
-/// <summary>Represents the current debugger execution mode.</summary>
-public enum ExecutionControlState
-{
-    Paused,
-    Running,
-    StepInto,
-    StepOver,
-    Completed,
-    Stopped
-}
