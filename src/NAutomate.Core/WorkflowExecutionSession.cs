@@ -1,4 +1,5 @@
 using NAutomate.Abstractions;
+using NAutomate.Abstractions.Projects;
 using NAutomate.Parser;
 
 namespace NAutomate.Core;
@@ -10,6 +11,7 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
     private readonly AutomationWorkflow _workflow;
     private readonly IExecutionEventSink _sink;
     private readonly AutomationEnvironment? _environment;
+    private readonly AutomationProjectSettings? _settings;
     private readonly CancellationTokenSource _stopSource = new();
     private readonly object _gate = new();
     private TaskCompletionSource<bool> _resumeSignal = CreateSignal();
@@ -19,12 +21,14 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
         WorkflowEngine engine,
         AutomationWorkflow workflow,
         IExecutionEventSink sink,
-        AutomationEnvironment? environment = null)
+        AutomationEnvironment? environment = null,
+        AutomationProjectSettings? settings = null)
     {
         _engine = engine;
         _workflow = workflow;
         _sink = sink;
         _environment = environment;
+        _settings = settings;
     }
 
     public ExecutionControlState State
@@ -76,7 +80,7 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
                 if (State == ExecutionControlState.Stopped)
                     return new WorkflowExecutionResult(WorkflowExecutionStatus.Cancelled);
 
-                await _engine.ExecuteStepAsync(_workflow, step, variables, _environment, _sink, token);
+                await _engine.ExecuteStepAsync(_workflow, step, variables, _environment, _sink, token, _settings);
 
                 if (State is ExecutionControlState.StepInto or ExecutionControlState.StepOver)
                     PauseAfterSingleStep();
