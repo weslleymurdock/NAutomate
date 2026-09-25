@@ -14,7 +14,8 @@ public sealed class FileAutomationProjectStoreTests
             var store = new FileAutomationProjectStore(root);
             var project = await store.CreateAsync("My Mobile Automation");
 
-            Assert.True(project.IsValid);
+            Assert.False(project.IsValid);
+            Assert.Contains(project.ValidationErrors, error => error.Contains("at least one step", StringComparison.OrdinalIgnoreCase));
             Assert.Equal($"{project.Id:D}-my-mobile-automation", project.DirectoryName);
 
             Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "automation.json")));
@@ -23,8 +24,11 @@ public sealed class FileAutomationProjectStoreTests
             Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "project.json")));
 
             var validation = await store.ValidateAsync(project.Id);
-            Assert.True(validation.IsValid);
-            Assert.Empty(validation.Errors);
+            Assert.False(validation.IsValid);
+            Assert.Contains(validation.Errors, error => error.Contains("at least one step", StringComparison.OrdinalIgnoreCase));
+
+            var state = await store.LoadAsync(project.Id);
+            Assert.Empty(state.Workflow.Steps);
         }
         finally
         {
@@ -80,4 +84,31 @@ public sealed class FileAutomationProjectStoreTests
         }
     }
 
+    [Fact]
+    public async Task RepairAsync_recreates_missing_project_manifest()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"nautomate-tests-{Guid.NewGuid():N}");
+        try
+        {
+            var store = new FileAutomationProjectStore(root);
+            var project = await store.CreateAsync("Repair me");
+            File.Delete(Path.Combine(project.DirectoryPath, "project.json"));
+
+            var broken = (await store.ListAsync()).Single();
+            Assert.False(broken.IsValid);
+            Assert.Equal(Guid.Empty, broken.Id);
+
+            var repaired = await store.RepairAsync(broken);
+
+            Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "project.json")));
+            Assert.Equal(project.Id, repaired.Id);
+            Assert.False(repaired.IsValid);
+            Assert.Contains(repaired.ValidationErrors, error => error.Contains("at least one step", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
 }
