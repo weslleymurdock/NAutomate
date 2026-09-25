@@ -16,7 +16,7 @@
     <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive" ClipMode="DrawerClipMode.Docked" Elevation="2">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pa-2">
             <MudText Typo="Typo.subtitle1">Navigation</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" AriaLabel="Hide navigation drawer" OnClick="DrawerClose" />
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" aria-label="Hide navigation drawer" OnClick="DrawerClose" />
         </MudStack>
         <NavMenu />
         <MudDivider />
