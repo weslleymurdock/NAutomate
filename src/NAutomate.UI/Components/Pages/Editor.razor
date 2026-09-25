@@ -62,40 +62,56 @@
 
             <MudStack Spacing="1" Class="pa-2">
                 <MudText Typo="Typo.caption">Control flow</MudText>
-                                <div class="palette-drag" draggable="true" @ondragstart="BeginDragIf" @ondragend="EndDrag" @onpointerdown="BeginPointerDragIf" @onpointerup="EndDrag" @onpointercancel="EndDrag">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.CallSplit" Disabled="@HasActiveDebugSession" OnClick="AddIf">IF / ELSE</MudButton>
+                <div class="palette-drag" draggable="true" @ondragstart="BeginDragIf" @ondragend="EndDrag" @onpointerdown="BeginPointerDragIf" @onpointerup="EndDrag" @onpointercancel="EndDrag">
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.CallSplit" Disabled="@HasActiveDebugSession">IF / ELSE</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragFor" @ondragend="EndDrag" @onpointerdown="BeginPointerDragFor" @onpointerup="EndDrag" @onpointercancel="EndDrag">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Repeat" Disabled="@HasActiveDebugSession" OnClick="AddFor">FOR</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Repeat" Disabled="@HasActiveDebugSession">FOR</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragForeach" @ondragend="EndDrag" @onpointerdown="BeginPointerDragForeach" @onpointerup="EndDrag" @onpointercancel="EndDrag">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Loop" Disabled="@HasActiveDebugSession" OnClick="AddForeach">FOREACH</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Loop" Disabled="@HasActiveDebugSession">FOREACH</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragWhile" @ondragend="EndDrag" @onpointerdown="BeginPointerDragWhile" @onpointerup="EndDrag" @onpointercancel="EndDrag">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Sync" Disabled="@HasActiveDebugSession" OnClick="AddWhile">WHILE</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Sync" Disabled="@HasActiveDebugSession">WHILE</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragSet" @ondragend="EndDrag" @onpointerdown="BeginPointerDragSet" @onpointerup="EndDrag" @onpointercancel="EndDrag">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Edit" Disabled="@HasActiveDebugSession" OnClick="AddSet">SET VARIABLE</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Edit" Disabled="@HasActiveDebugSession">SET VARIABLE</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragExit" @ondragend="EndDrag" @onpointerdown="BeginPointerDragExit" @onpointerup="EndDrag" @onpointercancel="EndDrag">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.StopCircle" Disabled="@HasActiveDebugSession" OnClick="AddExit">EXIT</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.StopCircle" Disabled="@HasActiveDebugSession">EXIT</MudButton>
                 </div>
-
             </MudStack>
 
             <MudDivider Class="my-2" />
             <MudTextField @bind-Value="_search" Placeholder="Search modules..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="px-3 pb-2" />
 
-            <MudStack Spacing="0">
-                @foreach (var module in Modules)
+            <MudExpansionPanels MultiExpansion="true" Dense="true" Gutters="false" Class="module-groups">
+                @foreach (var group in ModuleGroups)
                 {
-                    <div class="palette-drag" draggable="true" @ondragstart="@(() => BeginDragModule(module.Id))" @ondragend="EndDrag" @onpointerdown="@(() => BeginPointerDragModule(module.Id))" @onpointerup="EndDrag" @onpointercancel="EndDrag">
-                        <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@Icons.Material.Filled.Extension" Disabled="@HasActiveDebugSession" OnClick="@(() => AddModule(module))">
-                            <span><span class="method-label">@module.DisplayName</span><span class="method-id">@module.Id</span></span>
-                        </MudButton>
-                    </div>
+                    <MudExpansionPanel Text="@group.Key"
+                                       Icon="@ModuleFamilyIcon(group.Key)"
+                                       Expanded="@IsModuleGroupExpanded(group.Key)">
+                        @foreach (var module in group)
+                        {
+                            <div class="palette-drag module-palette-item"
+                                 draggable="true"
+                                 @ondragstart="@(() => BeginDragModule(module.Id))"
+                                 @ondragend="EndDrag"
+                                 @onpointerdown="@(() => BeginPointerDragModule(module.Id))"
+                                 @onpointerup="EndDrag"
+                                 @onpointercancel="EndDrag">
+                                <MudButton FullWidth="true"
+                                           Variant="Variant.Text"
+                                           Class="method-item"
+                                           StartIcon="@Icons.Material.Filled.SendTimeExtension"
+                                           Disabled="@HasActiveDebugSession">
+                                    <span><span class="method-label">@module.DisplayName</span><span class="method-id">@module.Id</span></span>
+                                </MudButton>
+                            </div>
+                        }
+                    </MudExpansionPanel>
                 }
-            </MudStack>
+            </MudExpansionPanels>
         </aside>
 
         <main class="flow-canvas workflow-tree-canvas">
@@ -103,7 +119,6 @@
                 <MudChip T="string" Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary">Workflow</MudChip>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Nested blocks are the execution paths.</MudText>
                 <MudSpacer />
-                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" Disabled="@HasActiveDebugSession" OnClick="AddEcho">Add Echo</MudButton>
             </div>
 
             <div class="workflow-tree">
@@ -128,7 +143,6 @@
                                         Disabled="@HasActiveDebugSession"
                                         OnSelected="SelectStep"
                                         OnRemoved="RemoveStepAsync"
-                                        OnAddChild="AddChildAsync"
                                         OnDropChild="DropChildAsync" />
                     <div class="workflow-dropzone workflow-dropzone-root workflow-dropzone-between"
                          @ondragover:preventDefault="true"
@@ -251,15 +265,25 @@
         </aside>
     </div>
 
-    <MudPaper Class="execution-console" Elevation="1">
+    <MudPaper Class="execution-console execution-console-drawer" Elevation="1">
         <MudStack Row="true" AlignItems="AlignItems.Center" Class="px-3 py-2">
             <MudIcon Icon="@Icons.Material.Filled.Terminal" />
             <MudText Typo="Typo.subtitle2">Execution console</MudText>
             <MudSpacer />
-            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ClearConsole">Clear</MudButton>
+            @if (_consoleExpanded)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ClearConsole">Clear</MudButton>
+            }
+            <MudIconButton Size="Size.Small"
+                           Icon="@(_consoleExpanded ? Icons.Material.Filled.KeyboardArrowDown : Icons.Material.Filled.KeyboardArrowUp)"
+                           AriaLabel="@(_consoleExpanded ? "Collapse execution console" : "Expand execution console")"
+                           OnClick="ToggleConsole" />
         </MudStack>
-        <MudDivider />
-        <pre class="execution-output">@_console</pre>
+        @if (_consoleExpanded)
+        {
+            <MudDivider />
+            <pre class="execution-output">@_console</pre>
+        }
     </MudPaper>
 </MudStack>
 
@@ -406,6 +430,7 @@
     private Task<WorkflowExecutionResult>? _debugTask;
     private int _nextSequence = 1;
     private bool _showEnvironmentDialog;
+    private bool _consoleExpanded;
     private string? _dragPayload;
 
     private readonly List<EditorFlowStep> _steps = [];
@@ -430,6 +455,23 @@
     private IEnumerable<ModuleDescriptor> Modules => ModuleRegistry.List().Where(x =>
         x.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
         x.Id.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<IGrouping<string, ModuleDescriptor>> ModuleGroups =>
+        Modules
+            .GroupBy(ModuleDescriptorParser.GetFamilyId)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase);
+
+    private bool IsModuleGroupExpanded(string family) =>
+        !string.IsNullOrWhiteSpace(_search) &&
+        ModuleGroups.Any(group => group.Key.Equals(family, StringComparison.OrdinalIgnoreCase));
+
+    private static string ModuleFamilyIcon(string family) => family.ToLowerInvariant() switch
+    {
+        "appium" => Icons.Material.Filled.Smartphone,
+        "shell" => Icons.Material.Filled.Terminal,
+        "selenium" => Icons.Material.Filled.Language,
+        _ => Icons.Material.Filled.Extension
+    };
 
     private bool HasActiveDebugSession => _debugSession is not null && _debugSession.State is not ExecutionControlState.Completed and not ExecutionControlState.Stopped;
     private bool CanPlay => _debugSession is null || _debugSession.State is ExecutionControlState.Paused;
@@ -792,19 +834,6 @@
         return step;
     }
 
-    private void AddEcho() => AddModule(ModuleRegistry.List().FirstOrDefault(x => x.Id == "core.echo"));
-    
-    private void AddModule(ModuleDescriptor? module)
-    {
-        if (module is null || HasActiveDebugSession)
-            return;
-
-        var step = CreateModuleStep(module);
-        _steps.Add(step);
-        _selected = step;
-        StateHasChanged();
-    }
-
     private EditorFlowStep CreateModuleStep(ModuleDescriptor module)
     {
         var step = new EditorFlowStep(
@@ -822,38 +851,8 @@
         return step;
     }
 
-    private void AddIf() => AddTopLevel(CreateIfStep());
-    private void AddFor() => AddTopLevel(CreateForStep());
-    private void AddForeach() => AddTopLevel(CreateForeachStep());
-    private void AddWhile() => AddTopLevel(CreateWhileStep());
-    private void AddSet() => AddTopLevel(CreateSetStep());
-    private void AddExit() => AddTopLevel(CreateExitStep());
-
     private EditorFlowStep CreateControlStep(string title, WorkflowStepKind kind, string icon, string description) =>
         new(Guid.NewGuid().ToString("N"), title, kind, icon, description) { Sequence = _nextSequence++ };
-
-    private void AddTopLevel(EditorFlowStep step)
-    {
-        _steps.Add(step);
-        _selected = step;
-        StateHasChanged();
-    }
-
-    private Task AddChildAsync((EditorFlowStep Parent, bool ElseBranch) request)
-    {
-        if (HasActiveDebugSession)
-            return Task.CompletedTask;
-
-        var echo = ModuleRegistry.List().FirstOrDefault(x => x.Id == "core.echo");
-        if (echo is null)
-            return Task.CompletedTask;
-
-        var child = CreateModuleStep(echo);
-        child.Values["message"] = "Step inside block";
-        (request.ElseBranch ? request.Parent.ElseChildren : request.Parent.Children).Add(child);
-        _selected = child;
-        return InvokeAsync(StateHasChanged);
-    }
 
     private void SelectStep(EditorFlowStep step) => _selected = step;
 
@@ -1195,6 +1194,8 @@
         _console = string.Empty;
         StateHasChanged();
     }
+
+    private void ToggleConsole() => _consoleExpanded = !_consoleExpanded;
 
     private void AppendConsole(string text) => _console += text;
 
