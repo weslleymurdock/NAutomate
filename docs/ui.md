@@ -1,6 +1,6 @@
 # UI Development
 
-Both `NAutomate` and `NAutomate.Web` are Blazor-based UI projects.
+The shared application UI lives in `NAutomate.UI` and is consumed by both the .NET MAUI Blazor Hybrid host (`src/NAutomate`) and the Web host (`src/NAutomate.Web`).
 
 ## MudBlazor
 
@@ -8,19 +8,14 @@ Use MudBlazor components exclusively for application UI controls and layout.
 
 Do not introduce Bootstrap components, another component library, or hand-built replacements when an appropriate MudBlazor component exists.
 
-Keep Razor components focused on presentation and user interaction. Put persistence, CLI process management, and orchestration in injected services.
+Keep Razor components focused on presentation and user interaction. Put persistence, runtime orchestration, and host/platform concerns in injected services.
 
-## First vertical slice
+## Projects
 
-The first desktop UI only needs:
+The MAUI home page loads persisted projects through `IAutomationProjectStore`. Project data is stored under the MAUI application data directory and each project must contain valid `automation.json`, `settings.json`, `env.json`, and `project.json` files before execution is allowed.
 
-- project name;
-- one `core.echo` step;
-- message input;
-- Save;
-- Run;
-- execution console.
+## Workflow editor
 
-The execution console should update incrementally as CLI output arrives.
+The existing editor layout is preserved. Adding steps uses drag-and-drop from the palette. The workflow root and every executable branch expose insertion targets, including positions between sibling steps. Clicking a palette item remains a fallback, but drag-and-drop is the mechanism used to select the destination explicitly.
 
-Do not implement drag-and-drop workflow editing in the first vertical slice.
+The workflow canvas owns the scrolling as the automation grows. Environment selection and variables remain in the existing dialog rather than permanently occupying editor space.
