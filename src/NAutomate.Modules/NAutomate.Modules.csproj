@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NAutomate.Abstractions\NAutomate.Abstractions.csproj" />
-    <ProjectReference Include="..\NAutomate.Modules\NAutomate.Modules.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

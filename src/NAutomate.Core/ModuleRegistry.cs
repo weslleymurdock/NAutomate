@@ -9,7 +9,8 @@ public sealed class ModuleRegistry : IModuleRegistry
 
     public ModuleRegistry(IEnumerable<IAutomationModule>? modules = null)
     {
-        foreach (var module in modules ?? [new EchoModule()])
+        var defaultModules = NAutomate.Modules.OfficialModules.GetModules();
+        foreach (var module in modules ?? defaultModules)
             Register(module);
     }
 
@@ -29,19 +30,4 @@ public sealed class ModuleRegistry : IModuleRegistry
         _modules.TryGetValue(moduleId, out var module)
             ? module
             : throw new KeyNotFoundException($"Module '{moduleId}' is not registered.");
-}
-
-internal sealed class EchoModule : IAutomationModule
-{
-    public ModuleDescriptor Descriptor { get; } = new(
-        "core.echo", "Echo", "Writes a message to the execution output.", "1.0",
-        [new ModuleParameterDefinition("message", "string", true, "Message to write.")]);
-
-    public Task<ModuleExecutionResult> ExecuteAsync(ModuleExecutionContext context)
-    {
-        context.CancellationToken.ThrowIfCancellationRequested();
-        if (!context.Step.Parameters.TryGetValue("message", out var value) || value is null || string.IsNullOrWhiteSpace(value.ToString()))
-            throw new ArgumentException("The 'message' parameter is required.");
-        return Task.FromResult(new ModuleExecutionResult(value.ToString()!));
-    }
 }
