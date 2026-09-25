@@ -65,6 +65,22 @@
     margin: 12px 0 24px;
 }
 
+.workflow-dropzone-between {
+    min-height: 12px;
+    padding: 2px 8px;
+    margin: 2px 0;
+    opacity: .45;
+}
+
+.workflow-dropzone-between .mud-typography {
+    opacity: .75;
+}
+
+.workflow-dropzone-between:hover {
+    min-height: 38px;
+    opacity: 1;
+}
+
 .workflow-block {
     margin: 10px 0;
     padding: 10px;
