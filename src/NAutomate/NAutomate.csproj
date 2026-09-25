@@ -68,6 +68,7 @@
         <ProjectReference Include="..\NAutomate.Core\NAutomate.Core.csproj" />
         <ProjectReference Include="..\NAutomate.Modules\NAutomate.Modules.csproj" />
         <ProjectReference Include="..\NAutomate.Parser\NAutomate.Parser.csproj" />
+        <ProjectReference Include="..\NAutomate.UI\NAutomate.UI.csproj" />
     </ItemGroup>
 
 </Project>
