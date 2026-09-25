@@ -1,5 +1,58 @@
 namespace NAutomate.Abstractions;
 
+[AttributeUsage(AttributeTargets.Interface, Inherited = false)]
+public sealed class AutomationServiceAttribute(
+    string id,
+    string displayName,
+    string description,
+    string version = "1.0.0") : Attribute
+{
+    public string Id { get; } = id;
+    public string DisplayName { get; } = displayName;
+    public string Description { get; } = description;
+    public string Version { get; } = version;
+}
+
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+public sealed class AutomationOperationAttribute(
+    string id,
+    string displayName,
+    string description) : Attribute
+{
+    public string Id { get; } = id;
+    public string DisplayName { get; } = displayName;
+    public string Description { get; } = description;
+}
+
+[AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
+public sealed class AutomationParameterAttribute(
+    string displayName,
+    string? description = null) : Attribute
+{
+    public string DisplayName { get; } = displayName;
+    public string? Description { get; } = description;
+}
+
+public sealed record AutomationParameterDescriptor(
+    string Name,
+    string Type,
+    bool Required,
+    string? Description = null);
+
+public sealed record AutomationOperationDescriptor(
+    string Id,
+    string DisplayName,
+    string Description,
+    string ReturnType,
+    IReadOnlyList<AutomationParameterDescriptor> Parameters);
+
+public sealed record AutomationServiceDescriptor(
+    string Id,
+    string DisplayName,
+    string Description,
+    string Version,
+    IReadOnlyList<AutomationOperationDescriptor> Operations);
+
 /// <summary>A declarative workflow persisted by NAutomate.</summary>
 public sealed record AutomationWorkflow(
     int SchemaVersion,
@@ -12,61 +65,52 @@ public sealed record WorkflowStep(
     string Module,
     IReadOnlyDictionary<string, object?> Parameters);
 
-/// <summary>Describes a parameter accepted by a module.</summary>
 public sealed record ModuleParameterDefinition(string Name, string Type, bool Required, string? Description = null);
 
-/// <summary>Discoverable metadata for a module.</summary>
 public sealed record ModuleDescriptor(
     string Id,
     string DisplayName,
     string Description,
     string Version,
-    IReadOnlyList<ModuleParameterDefinition> Parameters);
+    IReadOnlyList<ModuleParameterDefinition> Parameters,
+    IReadOnlyList<AutomationServiceDescriptor>? Services = null);
 
-/// <summary>Input supplied to a module during execution.</summary>
 public sealed record ModuleExecutionContext(
     AutomationWorkflow Workflow,
     WorkflowStep Step,
+    IReadOnlyDictionary<string, object?> Parameters,
     CancellationToken CancellationToken);
 
-/// <summary>Structured output from a module.</summary>
 public sealed record ModuleExecutionResult(string Output, bool Succeeded = true);
 
-/// <summary>Precompiled automation module selected by a stable module ID.</summary>
 public interface IAutomationModule
 {
     ModuleDescriptor Descriptor { get; }
-
     Task<ModuleExecutionResult> ExecuteAsync(ModuleExecutionContext context);
 }
 
-/// <summary>Resolves precompiled modules by stable identifier.</summary>
 public interface IModuleRegistry
 {
     IReadOnlyCollection<ModuleDescriptor> List();
     IAutomationModule Resolve(string moduleId);
 }
 
-/// <summary>Receives line-oriented execution events.</summary>
 public interface IExecutionEventSink
 {
     ValueTask OnEventAsync(ExecutionEvent executionEvent, CancellationToken cancellationToken = default);
 }
 
-/// <summary>An execution status or module output event.</summary>
 public sealed record ExecutionEvent(
     string Kind,
     string? ModuleId = null,
     string? Message = null,
     string? StepId = null);
 
-/// <summary>Result of a workflow execution.</summary>
 public sealed record WorkflowExecutionResult(
     WorkflowExecutionStatus Status,
     string? ErrorMessage = null,
     Exception? Exception = null);
 
-/// <summary>Possible statuses of a workflow execution.</summary>
 public enum WorkflowExecutionStatus
 {
     Success,
