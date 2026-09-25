@@ -8,6 +8,11 @@
 @using Microsoft.JSInterop
 @using MudBlazor
 @using MudBlazor.Services
+@using NAutomate.Abstractions
+@using NAutomate.Core
 @using NAutomate.Web
 @using NAutomate.Web.Components
 @using NAutomate.Web.Components.Layout
+@inject IModuleRegistry ModuleRegistry
+@inject WorkflowEngine WorkflowEngine
+@inject IJSRuntime JS

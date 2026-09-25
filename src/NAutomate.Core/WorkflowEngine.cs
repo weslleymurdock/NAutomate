@@ -4,6 +4,8 @@ namespace NAutomate.Core;
 
 public sealed class WorkflowEngine(IModuleRegistry registry)
 {
+    internal IAutomationModule Resolve(string moduleId) => registry.Resolve(moduleId);
+
     public async Task<WorkflowExecutionResult> ExecuteAsync(
         AutomationWorkflow workflow,
         IExecutionEventSink sink,
