@@ -24,7 +24,7 @@
 
             <div class="workflow-dropzone workflow-dropzone-between"
                  @ondragover:preventDefault="true"
-                 @ondrop="@(() => DropAsync(false, 0))">
+                 @ondrop="@(() => DropAsync(false, 0))" @onpointerup="@(() => DropAsync(false, 0))">
                 <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
                 <MudText Typo="Typo.caption">Drop here</MudText>
             </div>
@@ -42,7 +42,7 @@
                                     OnDropChild="OnDropChild" />
                 <div class="workflow-dropzone workflow-dropzone-between"
                      @ondragover:preventDefault="true"
-                     @ondrop="@(() => DropAsync(false, insertionIndex))">
+                     @ondrop="@(() => DropAsync(false, insertionIndex))" @onpointerup="@(() => DropAsync(false, insertionIndex))">
                     <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
                     <MudText Typo="Typo.caption">Drop here</MudText>
                 </div>
@@ -58,7 +58,7 @@
 
                 <div class="workflow-dropzone workflow-dropzone-between"
                      @ondragover:preventDefault="true"
-                     @ondrop="@(() => DropAsync(true, 0))">
+                     @ondrop="@(() => DropAsync(true, 0))" @onpointerup="@(() => DropAsync(true, 0))">
                     <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
                     <MudText Typo="Typo.caption">Drop here</MudText>
                 </div>
@@ -76,7 +76,7 @@
                                         OnDropChild="OnDropChild" />
                     <div class="workflow-dropzone workflow-dropzone-between"
                          @ondragover:preventDefault="true"
-                         @ondrop="@(() => DropAsync(true, insertionIndex))">
+                         @ondrop="@(() => DropAsync(true, insertionIndex))" @onpointerup="@(() => DropAsync(true, insertionIndex))">
                         <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
                         <MudText Typo="Typo.caption">Drop here</MudText>
                     </div>
