@@ -92,6 +92,14 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
             await _sink.OnEventAsync(new("cancelled", Message: "Execution cancelled."), CancellationToken.None);
             return new WorkflowExecutionResult(WorkflowExecutionStatus.Cancelled);
         }
+        catch (WorkflowExitException ex)
+        {
+            SetTerminalState(ExecutionControlState.Completed);
+            await _sink.OnEventAsync(new("completed", Message: $"Execution exited with code {ex.ExitCode}."), CancellationToken.None);
+            return new WorkflowExecutionResult(
+                ex.ExitCode == 0 ? WorkflowExecutionStatus.Success : WorkflowExecutionStatus.Failure,
+                ex.ExitCode == 0 ? null : $"Workflow exited with code {ex.ExitCode}.");
+        }
         catch (Exception ex)
         {
             SetTerminalState(ExecutionControlState.Stopped);
