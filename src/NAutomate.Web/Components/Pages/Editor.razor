@@ -73,7 +73,7 @@
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <MudIcon Icon="@Icons.Material.Filled.Public" />
                 <MudText Typo="Typo.subtitle1">Execution environment</MudText>
-                <MudSelect T="string" Label="Environment" Value="@_selectedEnvironmentId" ValueChanged="SelectEnvironmentAsync" Variant="Variant.Outlined" Class="environment-select">
+                <MudSelect T="string" Label="Environment" Value="@(_selectedEnvironmentId ?? string.Empty)" ValueChanged="SelectEnvironmentAsync" Variant="Variant.Outlined" Class="environment-select">
                     @foreach (var environment in _environments)
                     {
                         <MudSelectItem T="string" Value="@environment.Id">@environment.Name</MudSelectItem>
@@ -102,7 +102,7 @@
                         </MudSelect>
                         @if (_newVariableScope == AutomationVariableScope.Local)
                         {
-                            <MudSelect T="string" Label="Step" Value="@_newVariableStepId" ValueChanged="value => _newVariableStepId = value" Variant="Variant.Outlined">
+                            <MudSelect T="string" Label="Step" Value="@(_newVariableStepId ?? string.Empty)" ValueChanged="value => _newVariableStepId = value" Variant="Variant.Outlined">
                                 @foreach (var step in _steps.Where(x => !x.IsEntry))
                                 {
                                     <MudSelectItem T="string" Value="@step.Id">@step.Title</MudSelectItem>
@@ -131,7 +131,7 @@
                         {
                             <MudTextField T="string"
                                           Label="@variable.Key"
-                                          Value="@GetEnvironmentValue(variable.Key)"
+                                          Value="@(GetEnvironmentValue(variable.Key) ?? string.Empty)"
                                           ValueChanged="@((string? value) => SetEnvironmentValueAsync(variable.Key, value))"
                                           Variant="Variant.Outlined"
                                           Disabled="@HasActiveDebugSession" />
@@ -146,22 +146,33 @@
         <aside class="module-sidebar">
             <MudText Typo="Typo.subtitle1" Class="pa-3">Services & methods</MudText>
             <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="px-3 pb-3" />
-            @foreach (var module in Modules)
-            {
-                <MudExpansionPanel Text="@module.DisplayName" Icon="@ModuleIcon(module.Id)" Dense="true">
-                    @foreach (var service in module.Services ?? [])
-                    {
-                        <MudExpansionPanel Text="@service.DisplayName" Icon="@Icons.Material.Filled.Terminal" Dense="true">
-                            @foreach (var operation in service.Operations.Where(OperationMatches))
+            <MudExpansionPanels MultiExpansion="true" Dense="true" Gutters="false">
+                @foreach (var family in ModuleGroups)
+                {
+                    <MudExpansionPanel Text="@family.Key" Icon="@ModuleIcon(family.Key)">
+                        <MudExpansionPanels MultiExpansion="true" Dense="true" Gutters="false">
+                            @foreach (var serviceGroup in family.GroupBy(GetServiceGroupId))
                             {
-                                <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@MethodIcon(operation.ReturnType)" OnClick="@(() => AddStep(module, service, operation))">
-                                    <span><span class="method-label">@operation.DisplayName</span><span class="method-id">@operation.Id</span></span>
-                                </MudButton>
+                                var service = serviceGroup.SelectMany(module => module.Services ?? []).FirstOrDefault();
+                                if (service is null)
+                                    continue;
+
+                                <MudExpansionPanel Text="@service.DisplayName" Icon="@Icons.Material.Filled.Terminal">
+                                    @foreach (var module in serviceGroup)
+                                    {
+                                        @foreach (var operation in (module.Services ?? []).SelectMany(x => x.Operations).Where(OperationMatches))
+                                        {
+                                            <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@MethodIcon(operation.ReturnType)" OnClick="@(() => AddStep(module, service, operation))">
+                                                <span><span class="method-label">@operation.DisplayName</span><span class="method-id">@operation.Id</span></span>
+                                            </MudButton>
+                                        }
+                                    }
+                                </MudExpansionPanel>
                             }
-                        </MudExpansionPanel>
-                    }
-                </MudExpansionPanel>
-            }
+                        </MudExpansionPanels>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
         </aside>
 
         <main class="flow-canvas">
@@ -272,6 +283,23 @@
         ModuleRegistry.List().Where(x =>
             x.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
             x.Id.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<IGrouping<string, ModuleDescriptor>> ModuleGroups =>
+        Modules.GroupBy(GetModuleFamily);
+
+    private static string GetModuleFamily(ModuleDescriptor module) =>
+        GetModuleFamily(module.Id);
+
+    private static string GetModuleFamily(string moduleId)
+    {
+        var parts = moduleId.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 1
+            ? parts[0]
+            : moduleId;
+    }
+
+    private static string GetServiceGroupId(ModuleDescriptor module) =>
+        module.Services?.FirstOrDefault()?.Id ?? module.Id;
 
     private bool HasActiveDebugSession =>
         _debugSession is not null &&
