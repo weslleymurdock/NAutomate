@@ -28,6 +28,14 @@ public sealed class WorkflowParameterParserTests
     }
 
     [Fact]
+    public void ResolvesPrimitiveAliases()
+    {
+        Assert.Equal("hello", WorkflowParameterParser.Parse("hello", "string"));
+        Assert.Equal(42, WorkflowParameterParser.Parse("42", "int"));
+        Assert.Equal(true, WorkflowParameterParser.Parse("true", "bool"));
+    }
+
+    [Fact]
     public void ResolvesGlobalAndLocalEnvironmentPlaceholders()
     {
         var step = new WorkflowStep(
