@@ -13,7 +13,12 @@
         <MudIconButton Icon="@DarkLightModeButtonIcon" OnClick="DarkModeToggle" />
         <MudIconButton Icon="@Icons.Material.Filled.Settings" Href="/settings" />
     </MudAppBar>
-    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive" ClipMode="DrawerClipMode.Docked" Elevation="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pa-2">
+            <MudText Typo="Typo.subtitle1">Navigation</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" AriaLabel="Hide navigation drawer" OnClick="DrawerClose" />
+        </MudStack>
+        <MudDivider />
         <NavMenu />
     </MudDrawer>
     <MudMainContent Class="pt-16 pa-4">@Body</MudMainContent>
@@ -41,6 +46,7 @@
     }
 
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
+    private void DrawerClose() => _drawerOpen = false;
     private void DarkModeToggle() => _isDarkMode = !_isDarkMode;
 
     private readonly PaletteLight _lightPalette = new()
