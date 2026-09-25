@@ -14,8 +14,7 @@ public sealed class FileAutomationProjectStoreTests
             var store = new FileAutomationProjectStore(root);
             var project = await store.CreateAsync("My Mobile Automation", TestContext.Current.CancellationToken);
 
-            Assert.False(project.IsValid);
-            Assert.Contains(project.ValidationErrors, error => error.Contains("at least one step", StringComparison.OrdinalIgnoreCase));
+            Assert.True(project.IsValid);
             Assert.Equal($"{project.Id:D}-my-mobile-automation", project.DirectoryName);
 
             Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "automation.json")));

@@ -91,7 +91,22 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         var state = new AutomationProjectState
         {
             Info = new AutomationProjectInfo(id, name.Trim(), directoryName, directory, now, now, false, []),
-            Workflow = new AutomationWorkflow(WorkflowJson.CurrentSchemaVersion, name.Trim(), [], []),
+            Workflow = new AutomationWorkflow(
+                WorkflowJson.CurrentSchemaVersion,
+                name.Trim(),
+                [],
+                [
+                    new WorkflowStep
+                    {
+                        Id = "step-001",
+                        Kind = WorkflowStepKind.Module,
+                        Module = "core.echo",
+                        Parameters = new Dictionary<string, object?>
+                        {
+                            ["message"] = "hello world"
+                        }
+                    }
+                ]),
             Settings = new AutomationProjectSettings(),
             Environment = new AutomationEnvironmentFile()
         };
@@ -106,7 +121,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     {
         var directory = FindProjectDirectory(projectId);
         var manifest = await ReadManifestAsync(Path.Combine(directory, ProjectFileName), cancellationToken);
-        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
+        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: false);
         return ToInfo(manifest, directory, validation);
     }
 

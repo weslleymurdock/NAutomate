@@ -38,7 +38,7 @@ public static class WorkflowJson
                 };
             }
 
-            Validate(workflow);
+            Validate(workflow, requireSteps: false);
             return workflow;
         }
         catch (JsonException exception)
@@ -49,11 +49,11 @@ public static class WorkflowJson
 
     public static string Serialize(AutomationWorkflow workflow)
     {
-        Validate(workflow);
+        Validate(workflow, requireSteps: false);
         return JsonSerializer.Serialize(workflow, Options);
     }
 
-    public static void Validate(AutomationWorkflow workflow)
+    public static void Validate(AutomationWorkflow workflow, bool requireSteps = true)
     {
         ArgumentNullException.ThrowIfNull(workflow);
 
@@ -61,7 +61,7 @@ public static class WorkflowJson
             throw new InvalidDataException($"Unsupported workflow schema version: {workflow.SchemaVersion}.");
         if (string.IsNullOrWhiteSpace(workflow.Name))
             throw new InvalidDataException("Workflow name is required.");
-        if (workflow.Steps is null || workflow.Steps.Count == 0)
+        if (requireSteps && (workflow.Steps is null || workflow.Steps.Count == 0))
             throw new InvalidDataException("Workflow must contain at least one step.");
 
         var variables = workflow.Variables ?? [];
