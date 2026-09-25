@@ -1,22 +1,27 @@
 @inherits LayoutComponentBase
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
-<MudPopoverProvider />
 <MudDialogProvider />
+<MudPopoverProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
+    <MudAppBar>
         <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="DrawerToggle" />
         <MudText Typo="Typo.h5" Class="ml-3">NAutomate</MudText>
         <MudSpacer />
         <MudIconButton Icon="@DarkLightModeButtonIcon" OnClick="DarkModeToggle" />
         <MudIconButton Icon="@Icons.Material.Filled.Settings" Href="/settings" />
     </MudAppBar>
-    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive" ClipMode="DrawerClipMode.Docked" Elevation="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="pa-2">
+            <MudText Typo="Typo.subtitle1">Navigation</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" AriaLabel="Hide navigation drawer" OnClick="DrawerClose" />
+        </MudStack>
         <NavMenu />
+        <MudDivider />
     </MudDrawer>
-    <MudMainContent Class="pt-16 pa-4">@Body</MudMainContent>
+    <MudMainContent>@Body</MudMainContent>
 </MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -40,8 +45,9 @@
         };
     }
 
-    private void DrawerToggle() => _drawerOpen = !_drawerOpen;
-    private void DarkModeToggle() => _isDarkMode = !_isDarkMode;
+    private void DrawerToggle()  { _drawerOpen = !_drawerOpen; StateHasChanged(); }
+    private void DrawerClose()  { _drawerOpen = false; StateHasChanged(); }
+    private void DarkModeToggle() { _isDarkMode = !_isDarkMode; StateHasChanged(); }
 
     private readonly PaletteLight _lightPalette = new()
     {

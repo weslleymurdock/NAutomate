@@ -68,7 +68,8 @@ public sealed record AutomationServiceDescriptor(
 public sealed record AutomationWorkflow(
     int SchemaVersion,
     string Name,
-    IReadOnlyList<WorkflowStep> Steps);
+    IReadOnlyList<WorkflowStep> Steps,
+    IReadOnlyList<AutomationVariableDefinition>? Variables = null);
 
 /// <summary>A single precompiled module invocation.</summary>
 public sealed record WorkflowStep(
@@ -90,7 +91,8 @@ public sealed record ModuleExecutionContext(
     AutomationWorkflow Workflow,
     WorkflowStep Step,
     IReadOnlyDictionary<string, object?> Parameters,
-    CancellationToken CancellationToken);
+    CancellationToken CancellationToken,
+    AutomationEnvironment? Environment = null);
 
 public sealed record ModuleExecutionResult(string Output, bool Succeeded = true);
 

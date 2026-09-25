@@ -7,14 +7,13 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 
-
   <ItemGroup>
     <PackageReference Include="MudBlazor" Version="9.*" />
   </ItemGroup>
 
-
   <ItemGroup>
     <ProjectReference Include="..\NAutomate.Core\NAutomate.Core.csproj" />
     <ProjectReference Include="..\NAutomate.Modules\NAutomate.Modules.csproj" />
+    <ProjectReference Include="..\NAutomate.Parser\NAutomate.Parser.csproj" />
   </ItemGroup>
 </Project>

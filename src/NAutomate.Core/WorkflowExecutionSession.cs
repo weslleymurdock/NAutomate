@@ -1,4 +1,5 @@
 using NAutomate.Abstractions;
+using NAutomate.Parser;
 
 namespace NAutomate.Core;
 
@@ -8,6 +9,7 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
     private readonly WorkflowEngine _engine;
     private readonly AutomationWorkflow _workflow;
     private readonly IExecutionEventSink _sink;
+    private readonly AutomationEnvironment? _environment;
     private readonly CancellationTokenSource _stopSource = new();
     private readonly object _gate = new();
     private TaskCompletionSource<bool> _resumeSignal = CreateSignal();
@@ -16,11 +18,13 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
     public WorkflowExecutionSession(
         WorkflowEngine engine,
         AutomationWorkflow workflow,
-        IExecutionEventSink sink)
+        IExecutionEventSink sink,
+        AutomationEnvironment? environment = null)
     {
         _engine = engine;
         _workflow = workflow;
         _sink = sink;
+        _environment = environment;
     }
 
     public ExecutionControlState State
@@ -97,7 +101,7 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
                     token);
 
                 var result = await module.ExecuteAsync(
-                    new(_workflow, step, step.Parameters, token));
+                    new(_workflow, step, EnvironmentVariableResolver.ResolveParameters(step, _environment), token, _environment));
 
                 await _sink.OnEventAsync(
                     new("output", module.Descriptor.Id, result.Output, step.Id),

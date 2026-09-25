@@ -11,6 +11,8 @@ builder.Services.AddMudServices();
 builder.Services.AddSingleton<IModuleRegistry>(_ => new ModuleRegistry(OfficialModules.GetModules()));
 builder.Services.AddSingleton<WorkflowEngine>();
 builder.Services.AddSingleton<FileWorkflowStore>();
+builder.Services.AddSingleton<IExecutionEnvironmentStore, FileExecutionEnvironmentStore>();
+builder.Services.AddSingleton<IExecutionEnvironmentService, ExecutionEnvironmentService>();
 builder.Services.AddSingleton<IModuleSettingsTabProvider, AppiumSettingsTabProvider>();
 
 builder.Services.AddRazorComponents()

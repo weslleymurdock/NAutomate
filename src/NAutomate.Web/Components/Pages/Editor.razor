@@ -1,6 +1,13 @@
 @page "/editor"
 @rendermode InteractiveServer
+@using NAutomate.Abstractions
+@using NAutomate.Core
+@using NAutomate.Parser
+@inject IModuleRegistry ModuleRegistry
+@inject WorkflowEngine WorkflowEngine
+@inject IJSRuntime JS
 @implements IAsyncDisposable
+@inject IExecutionEnvironmentService EnvironmentService
 
 <PageTitle>Automation Editor</PageTitle>
 <MudStack Spacing="2" Class="editor-shell">
@@ -67,26 +74,111 @@
         </MudText>
     </MudPaper>
 
+    <MudPaper Class="pa-3" Elevation="1">
+        <MudStack Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.Public" />
+                <MudText Typo="Typo.subtitle1">Execution environment</MudText>
+                <MudSelect T="string" Label="Environment" Value="@(_selectedEnvironmentId ?? string.Empty)" ValueChanged="SelectEnvironmentAsync" Variant="Variant.Outlined" Class="environment-select">
+                    @foreach (var environment in _environments)
+                    {
+                        <MudSelectItem T="string" Value="@environment.Id">@environment.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string" Label="New environment" Placeholder="Development" Value="@_newEnvironmentName" ValueChanged="value => _newEnvironmentName = value" Variant="Variant.Outlined" />
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Disabled="@string.IsNullOrWhiteSpace(_newEnvironmentName)" OnClick="AddEnvironmentAsync">Add</MudButton>
+                @if (_selectedEnvironmentId is not null)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Color="Color.Error" OnClick="DeleteEnvironmentAsync" />
+                }
+            </MudStack>
+
+            <MudDivider />
+
+            <MudExpansionPanel Text="Automation variables" Icon="@Icons.Material.Filled.DataObject">
+                <MudStack Spacing="2" Class="pa-2">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Global variables are available to every operation. Local variables are scoped to a workflow step. Use <code>${name}</code> or <code>${stepId:name}</code> in operation parameters.
+                    </MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudTextField T="string" Label="Variable name" Value="@_newVariableName" ValueChanged="value => _newVariableName = value" Variant="Variant.Outlined" />
+                        <MudSelect T="AutomationVariableScope" Label="Scope" Value="@_newVariableScope" ValueChanged="value => _newVariableScope = value" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@AutomationVariableScope.Global">Global</MudSelectItem>
+                            <MudSelectItem Value="@AutomationVariableScope.Local">Local</MudSelectItem>
+                        </MudSelect>
+                        @if (_newVariableScope == AutomationVariableScope.Local)
+                        {
+                            <MudSelect T="string" Label="Step" Value="@(_newVariableStepId ?? string.Empty)" ValueChanged="value => _newVariableStepId = value" Variant="Variant.Outlined">
+                                @foreach (var step in _steps.Where(x => !x.IsEntry))
+                                {
+                                    <MudSelectItem T="string" Value="@step.Id">@step.Title</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" Disabled="@(!CanAddVariable)" OnClick="AddVariableAsync">Add</MudButton>
+                    </MudStack>
+
+                    @foreach (var variable in _variables)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudChip T="string" Size="Size.Small" Color="@(variable.Scope == AutomationVariableScope.Global ? Color.Info : Color.Secondary)">@variable.Key</MudChip>
+                            @if (!HasActiveDebugSession)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveVariableAsync(variable.Key))" />
+                            }
+                        </MudStack>
+                    }
+
+                    @if (_selectedEnvironment is not null && _variables.Count > 0)
+                    {
+                        <MudDivider />
+                        <MudText Typo="Typo.subtitle2">Values — @_selectedEnvironment.Name</MudText>
+                        @foreach (var variable in _variables)
+                        {
+                            <MudTextField T="string"
+                                          Label="@variable.Key"
+                                          Value="@(GetEnvironmentValue(variable.Key) ?? string.Empty)"
+                                          ValueChanged="@((string? value) => SetEnvironmentValueAsync(variable.Key, value))"
+                                          Variant="Variant.Outlined"
+                                          Disabled="@HasActiveDebugSession" />
+                        }
+                    }
+                </MudStack>
+            </MudExpansionPanel>
+        </MudStack>
+    </MudPaper>
+
     <div class="automation-editor">
         <aside class="module-sidebar">
             <MudText Typo="Typo.subtitle1" Class="pa-3">Services & methods</MudText>
             <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="px-3 pb-3" />
-            @foreach (var module in Modules)
-            {
-                <MudExpansionPanel Text="@module.DisplayName" Icon="@ModuleIcon(module.Id)" Dense="true">
-                    @foreach (var service in module.Services ?? [])
-                    {
-                        <MudExpansionPanel Text="@service.DisplayName" Icon="@Icons.Material.Filled.Terminal" Dense="true">
-                            @foreach (var operation in service.Operations.Where(OperationMatches))
+            <MudExpansionPanels MultiExpansion="true" Dense="true" Gutters="false">
+                @foreach (var family in ModuleGroups)
+                {
+                    <MudExpansionPanel Text="@family.Key" Icon="@ModuleIcon(family.Key)">
+                        <MudExpansionPanels MultiExpansion="true" Dense="true" Gutters="false">
+                            @foreach (var serviceGroup in family.GroupBy(GetServiceGroupId))
                             {
-                                <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@MethodIcon(operation.ReturnType)" OnClick="@(() => AddStep(module, service, operation))">
-                                    <span><span class="method-label">@operation.DisplayName</span><span class="method-id">@operation.Id</span></span>
-                                </MudButton>
+                                var service = serviceGroup.SelectMany(module => module.Services ?? []).FirstOrDefault();
+                                if (service is null)
+                                    continue;
+
+                                <MudExpansionPanel Text="@service.DisplayName" Icon="@Icons.Material.Filled.Terminal">
+                                    @foreach (var module in serviceGroup)
+                                    {
+                                        @foreach (var operation in (module.Services ?? []).SelectMany(x => x.Operations).Where(OperationMatches))
+                                        {
+                                            <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@MethodIcon(operation.ReturnType)" OnClick="@(() => AddStep(module, service, operation))">
+                                                <span><span class="method-label">@operation.DisplayName</span><span class="method-id">@operation.Id</span></span>
+                                            </MudButton>
+                                        }
+                                    }
+                                </MudExpansionPanel>
                             }
-                        </MudExpansionPanel>
-                    }
-                </MudExpansionPanel>
-            }
+                        </MudExpansionPanels>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
         </aside>
 
         <main class="flow-canvas">
@@ -115,7 +207,7 @@
                             <MudText Typo="Typo.caption">@step.Kind</MudText>
                             @if (!step.IsEntry)
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" Disabled="@HasActiveDebugSession" OnClick="@(() => RemoveStep(step.Id))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" Disabled="@HasActiveDebugSession" OnClick="@(() => RemoveStepAsync(step.Id))" />
                             }
                         </div>
                         <MudText Typo="Typo.subtitle2">@step.Title</MudText>
@@ -174,7 +266,17 @@
     private string _search = string.Empty;
     private string _console = string.Empty;
     private string? _activeStepId;
+    private readonly List<AutomationVariableDefinition> _variables = [];
+    private List<AutomationEnvironment> _environments = [];
+    private string? _selectedEnvironmentId;
+    private string _newEnvironmentName = string.Empty;
+    private string _newVariableName = string.Empty;
+    private AutomationVariableScope _newVariableScope = AutomationVariableScope.Global;
+    private string? _newVariableStepId;
     private FlowStep? _selected;
+
+    private AutomationEnvironment? _selectedEnvironment => _environments.FirstOrDefault(x => x.Id == _selectedEnvironmentId);
+    private bool CanAddVariable => !string.IsNullOrWhiteSpace(_newVariableName) && (_newVariableScope == AutomationVariableScope.Global || !string.IsNullOrWhiteSpace(_newVariableStepId));
     private WorkflowExecutionSession? _debugSession;
     private Task<WorkflowExecutionResult>? _debugTask;
 
@@ -187,6 +289,18 @@
         ModuleRegistry.List().Where(x =>
             x.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
             x.Id.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<IGrouping<string, ModuleDescriptor>> ModuleGroups =>
+        Modules.GroupBy(GetModuleFamily);
+
+    private static string GetModuleFamily(ModuleDescriptor module) =>
+        GetModuleFamily(module.Id);
+
+    private static string GetModuleFamily(string moduleId) =>
+        ModuleDescriptorParser.GetFamilyId(moduleId);
+
+    private static string GetServiceGroupId(ModuleDescriptor module) =>
+        ModuleDescriptorParser.GetServiceGroupId(module);
 
     private bool HasActiveDebugSession =>
         _debugSession is not null &&
@@ -227,6 +341,20 @@
             ExecutionControlState.Stopped => Color.Error,
             _ => Color.Default
         };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var workflow = BuildWorkflow();
+        _environments = [.. await EnvironmentService.SynchronizeAsync(workflow)];
+
+        if (_environments.Count == 0)
+        {
+            var environment = await EnvironmentService.CreateAsync("Default", workflow);
+            _environments = [environment];
+        }
+
+        _selectedEnvironmentId = _environments[0].Id;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -272,15 +400,18 @@
         _selected = step;
     }
 
-    private void RemoveStep(string id)
+    private async Task RemoveStepAsync(string id)
     {
         if (id == "entry" || HasActiveDebugSession)
             return;
 
         _steps.RemoveAll(x => x.Id == id);
+        _variables.RemoveAll(x => x.Scope == AutomationVariableScope.Local && x.StepId == id);
 
         if (_selected?.Id == id)
             _selected = null;
+
+        await SynchronizeEnvironmentsAsync();
     }
 
     private void SelectStep(FlowStep step) => _selected = step;
@@ -298,12 +429,108 @@
             .Select(step => new WorkflowStep(
                 step.Id,
                 step.ModuleId,
-                step.Values.ToDictionary(x => x.Key, x => (object?)x.Value, StringComparer.Ordinal))).ToArray();
+                WorkflowParameterParser.Parse(step.Values, step.Parameters))).ToArray();
 
         return new AutomationWorkflow(
             WorkflowJson.CurrentSchemaVersion,
             "Editor automation",
-            steps);
+            steps,
+            [.. _variables]);
+    }
+
+
+    private async Task SelectEnvironmentAsync(string? id)
+    {
+        _selectedEnvironmentId = id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddEnvironmentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newEnvironmentName))
+            return;
+
+        var workflow = BuildWorkflow();
+        var environment = await EnvironmentService.CreateAsync(_newEnvironmentName, workflow);
+        _environments = [.. await EnvironmentService.ListAsync(workflow)];
+        _selectedEnvironmentId = environment.Id;
+        _newEnvironmentName = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteEnvironmentAsync()
+    {
+        if (_selectedEnvironmentId is null)
+            return;
+
+        await EnvironmentService.DeleteAsync(_selectedEnvironmentId);
+        var workflow = BuildWorkflow();
+        _environments = [.. await EnvironmentService.ListAsync(workflow)];
+
+        if (_environments.Count == 0)
+        {
+            var environment = await EnvironmentService.CreateAsync("Default", workflow);
+            _environments = [environment];
+        }
+
+        _selectedEnvironmentId = _environments[0].Id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string? GetEnvironmentValue(string key) =>
+        _selectedEnvironment?.Values.TryGetValue(key, out var value) == true ? value : null;
+
+    private async Task SetEnvironmentValueAsync(string key, string? value)
+    {
+        if (_selectedEnvironment is null)
+            return;
+
+        var values = new Dictionary<string, string?>(_selectedEnvironment.Values, StringComparer.Ordinal)
+        {
+            [key] = value
+        };
+
+        var saved = await EnvironmentService.SaveAsync(
+            _selectedEnvironment with { Values = values },
+            BuildWorkflow());
+
+        _environments = [.. _environments.Select(x => x.Id == saved.Id ? saved : x)];
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddVariableAsync()
+    {
+        if (!CanAddVariable)
+            return;
+
+        var variable = new AutomationVariableDefinition(
+            _newVariableName.Trim(),
+            _newVariableScope,
+            _newVariableScope == AutomationVariableScope.Local ? _newVariableStepId : null);
+
+        if (_variables.Any(x => x.Key.Equals(variable.Key, StringComparison.Ordinal)))
+            return;
+
+        _variables.Add(variable);
+        _newVariableName = string.Empty;
+        _newVariableStepId = null;
+        await SynchronizeEnvironmentsAsync();
+    }
+
+    private async Task RemoveVariableAsync(string key)
+    {
+        _variables.RemoveAll(x => x.Key.Equals(key, StringComparison.Ordinal));
+        await SynchronizeEnvironmentsAsync();
+    }
+
+    private async Task SynchronizeEnvironmentsAsync()
+    {
+        _environments = [.. await EnvironmentService.SynchronizeAsync(BuildWorkflow())];
+
+        if (_selectedEnvironmentId is not null && !_environments.Any(x => x.Id == _selectedEnvironmentId))
+            _selectedEnvironmentId = _environments.FirstOrDefault()?.Id;
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task DebugAsync()
@@ -328,7 +555,7 @@
             _activeStepId = null;
 
             var sink = new UiEventSink(this);
-            _debugSession = new WorkflowExecutionSession(WorkflowEngine, workflow, sink);
+            _debugSession = new WorkflowExecutionSession(WorkflowEngine, workflow, sink, _selectedEnvironment);
             _debugTask = _debugSession.RunAsync();
 
             await InvokeAsync(StateHasChanged);
@@ -478,7 +705,7 @@
             Id = id;
             Title = title;
             Module = module;
-            ModuleId = module.Split(" · ", StringSplitOptions.None)[0];
+            ModuleId = ModuleDescriptorParser.GetModuleId(module);
             OperationId = kind;
             Icon = icon;
             Kind = kind;

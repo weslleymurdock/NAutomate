@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>.NET Solution Dependency Explorer</title>
+    
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/mudblazor@9.5.1/_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/webcola@3.4.0/WebCola/cola.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.5.1/cytoscape-cola.min.js"></script>
+
+    <style>
+        body {
+            background-color: #1a1a2e;
+            color: #f5f5f5;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .mud-main-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        #graph-container {
+            flex-grow: 1;
+            background-color: #111122;
+            border-radius: 8px;
+            border: 1px solid #2b2b40;
+            position: relative;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.5);
+        }
+        #cy {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(17, 17, 34, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            border-radius: 8px;
+            flex-direction: column;
+        }
+        .mud-paper-dark {
+            background-color: #232338;
+            border: 1px solid #33334c;
+        }
+        .setup-zone {
+            border: 2px dashed #594ae2;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            background: #1b1b32;
+            cursor: pointer;
+            transition: background 0.3s, border-color 0.3s;
+            max-width: 500px;
+        }
+        .setup-zone:hover {
+            background: #252545;
+            border-color: #00e676;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border-left-color: #594ae2;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+    </style>
+</head>
+<body class="mud-theme-dark">
+ S
+    <div class="mud-main-container">
+        <div class="mud-paper mud-elevation-4 mud-paper-dark p-4 mb-4 d-flex align-center justify-space-between rounded">
+            <div class="d-flex align-center">
+                <svg style="width:32px;height:32px;margin-right:12px;fill:#594ae2" viewBox="0 0 24 24">
+                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4M12,18A2,2 0 0,1 10,16A2,2 0 0,1 12,14A2,2 0 0,1 14,16A2,2 0 0,1 12,18M17,14A2,2 0 0,1 15,12A2,2 0 0,1 17,10A2,2 0 0,1 19,12A2,2 0 0,1 17,14M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14Z"/>
+                </svg>
+                <div>
+                    <h5 class="mud-typography mud-typography-h5 font-weight-bold" style="color:#fff; margin:0;">.NET Dependency Architecture</h5>
+                    <span class="mud-typography mud-typography-caption mud-text-secondary" id="sln-name">Sincronizando workspace...</span>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="mud-button-root mud-btn mud-btn-outlined mud-btn-outlined-primary mud-ripple px-4 py-2 rounded font-weight-medium" style="color: #8e8eb2; border-color: #33334c;" onclick="resetLayout()">
+                    <span class="mud-button-label">Reorganizar Layout</span>
+                </button>
+                <button id="btn-sync" class="mud-button-root mud-btn mud-btn-filled mud-ripple px-6 py-2 rounded font-weight-medium" style="background-color: #594ae2; display: none;" onclick="initWorkspacePermission()">
+                    <span class="mud-button-label">Vincular Pasta Local</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="graph-container">
+            <div id="cy"></div>
+
+            <div id="loading" class="loading-overlay">
+                <div class="spinner"></div>
+                <p class="mud-typography mud-typography-body1" id="loading-text" style="color: #b0b0c6;">Verificando integridade do diretório...</p>
+            </div>
+            
+            <div id="welcome-message" class="loading-overlay" style="display: none;">
+                <div class="setup-zone" onclick="initWorkspacePermission()">
+                    <svg style="width:48px;height:48px;color:#594ae2;margin-bottom:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 10v2m0-6V4M5 21h14a2 2 0 002-2v-5a2 2 0 00-2-2H5a2 2 0 00-2 2v5a2 2 0 002 2z"></path>
+                    </svg>
+                    <p class="mud-typography mud-typography-h6 mb-1" style="color: #fff;">Vincule o diretório atual</p>
+                    <p class="mud-typography mud-typography-body2 mud-text-secondary px-2">
+                        Clique aqui para autorizar o mapeamento automático do arquivo <b>.slnx</b> localizado junto a este arquivo HTML.
+                    </p>
+                </div>
+            </div>
+
+            
+        </div>
+    </div>
+
+    <script type="module">
+        import { get, set } from 'https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm';
+
+        let cyInstance = null;
+        const projectFilesMap = new Map();
+        const DB_KEY = 'dotnet_sol_dir_handle';
+
+        // Executado ao carregar a página: tenta recuperar acesso automático anterior
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const retainedHandle = await get(DB_KEY);
+                if (retainedHandle) {
+                    // Verifica se o usuário já deu permissão permanente para a pasta nesta sessão
+                    if (await verifyPermission(retainedHandle, true)) {
+                        await scanAndBuild(retainedHandle);
+                        return;
+                    }
+                }
+                showSetupUI();
+            } catch (err) {
+                console.error(err);
+                showSetupUI();
+            }
+        });
+
+        async function verifyPermission(fileHandle, readWrite) {
+            const options = {};
+            if (readWrite) options.mode = 'read';
+            if ((await fileHandle.queryPermission(options)) === 'granted') return true;
+            if ((await fileHandle.requestPermission(options)) === 'granted') return true;
+            return false;
+        }
+
+        async function initWorkspacePermission() {
+            try {
+                // Solicita a pasta onde o .html está inserido
+                const dirHandle = await window.showDirectoryPicker();
+                await set(DB_KEY, dirHandle);
+                document.getElementById('welcome-message').style.display = 'none';
+                document.getElementById('loading').style.display = 'flex';
+                await scanAndBuild(dirHandle);
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    alert('Permissão necessária para mapear os arquivos locais.');
+                }
+                showSetupUI();
+            }
+        }
+
+        function showSetupUI() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('welcome-message').style.display = 'flex';
+            document.getElementById('btn-sync').style.display = 'inline-flex';
+        }
+
+        // Faz a varredura automática sem drags adicionais baseando-se no Diretório Vinculado
+        async function scanAndBuild(dirHandle) {
+            document.getElementById('loading-text').innerText = "Buscando arquivo .slnx/.sln...";
+            projectFilesMap.clear();
+
+            let slnContent = "";
+            let slnName = "";
+            let slnxFileHandle = null;
+
+            // Busca rasa por arquivos de solução na raiz informada
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file' && (entry.name.endsWith('.slnx') || entry.name.endsWith('.sln'))) {
+                    slnxFileHandle = entry;
+                    slnName = entry.name;
+                    break;
+                }
+            }
+
+            if (!slnxFileHandle) {
+                alert('Nenhum arquivo .slnx ou .sln encontrado no diretório vinculado.');
+                showSetupUI();
+                return;
+            }
+
+            const file = await slnxFileHandle.getFile();
+            slnContent = await file.text();
+            document.getElementById('sln-name').innerText = `Solução: ${slnName}`;
+
+            document.getElementById('loading-text').innerText = "Escaneando referências internas dos projetos...";
+            await deepScanProjects(dirHandle);
+            
+            buildGraph();
+        }
+
+        async function deepScanProjects(dirHandle) {
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file' && entry.name.endsWith('.csproj')) {
+                    const file = await entry.getFile();
+                    const text = await file.text();
+                    projectFilesMap.set(entry.name.replace('.csproj', ''), text);
+                } else if (entry.kind === 'directory') {
+                    if (!['bin', 'obj', '.git', '.vs', 'node_modules'].includes(entry.name)) {
+                        await deepScanProjects(entry);
+                    }
+                }
+            }
+        }
+
+        function buildGraph() {
+            const elements = [];
+
+            // Nós
+            for (const [name, content] of projectFilesMap.entries()) {
+                const isExecutable = content.includes('Sdk="Microsoft.NET.Sdk.Web"') || content.includes('Sdk="Microsoft.NET.Sdk.BlazorWebAssembly"');
+                elements.push({
+                    data: {
+                        id: name,
+                        label: (isExecutable ? '🟢 ' : '📦 ') + name,
+                        type: isExecutable ? 'web' : 'lib'
+                    }
+                });
+            }
+
+            // Arestas Reais
+            for (const [name, content] of projectFilesMap.entries()) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(content, "text/xml");
+                const projectReferences = xmlDoc.getElementsByTagName("ProjectReference");
+
+                for (let i = 0; i < projectReferences.length; i++) {
+                    const includePath = projectReferences[i].getAttribute("Include");
+                    if (includePath) {
+                        const refName = includePath.replace(/\\/g, '/').split('/').pop().replace('.csproj', '');
+                        if (projectFilesMap.has(refName)) {
+                            elements.push({
+                                data: { id: `edge-${name}-${refName}`, source: name, target: refName }
+                            });
+                        }
+                    }
+                }
+            }
+
+            renderInteractiveGraph(elements);
+        }
+
+        function renderInteractiveGraph(elements) {
+            cyInstance = cytoscape({
+                container: document.getElementById('cy'),
+                elements: elements,
+                
+                // REQUISITO 2: Reduzido drasticamente para o zoom exigir muito mais rotação física do scroll
+                wheelSensitivity: 0.05, 
+                
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'label': 'data(label)',
+                            'shape': 'round-rectangle',
+                            'background-color': '#2b2b40',
+                            'border-color': '#594ae2',
+                            'border-width': 2,
+                            'text-valign': 'center',
+                            'text-halign': 'center',
+                            'color': '#ffffff',
+                            'font-family': 'Roboto',
+                            'font-size': '13px',
+                            'width': 'label',
+                            'padding': '14px',
+                        }
+                    },
+                    {
+                        selector: 'node[type="web"]',
+                        style: {
+                            'background-color': '#1b5e20',
+                            'border-color': '#00e676'
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 2.5,
+                            'line-color': '#594ae2',
+                            'target-arrow-color': '#00e676',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'control-point-step-size': 40
+                        }
+                    }
+                ],
+                layout: {
+                    name: 'cola',
+                    animate: true,
+                    maxSimulationTime: 2000,
+                    fit: true,
+                    padding: 50,
+                    nodeSpacing: 65,
+                    edgeLength: 150
+                }
+            });
+
+            cyInstance.ready(() => {
+                document.getElementById('loading').style.display = 'none';
+            });
+        }
+
+        function resetLayout() {
+            if (cyInstance) {
+                cyInstance.layout({
+                    name: 'cola',
+                    animate: true,
+                    maxSimulationTime: 1500,
+                    fit: true,
+                    padding: 50,
+                    nodeSpacing: 65
+                }).run();
+            }
+        }
+
+        window.initWorkspacePermission = initWorkspacePermission;
+        window.resetLayout = resetLayout;
+    </script>
+</body>
+</html>
