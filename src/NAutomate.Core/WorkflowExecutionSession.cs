@@ -1,4 +1,5 @@
 using NAutomate.Abstractions;
+using NAutomate.Parser;
 
 namespace NAutomate.Core;
 
