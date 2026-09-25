@@ -7,12 +7,16 @@ namespace NAutomate.Parser;
 /// <summary>Reads, writes, and validates the versioned declarative workflow format.</summary>
 public static class WorkflowJson
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
+        Converters =
+        {
+            new JsonStringEnumConverter(),
+            new WorkflowStepJsonConverter()
+        }
     };
 
     public static AutomationWorkflow Deserialize(string json)
@@ -25,7 +29,7 @@ public static class WorkflowJson
             var workflow = JsonSerializer.Deserialize<AutomationWorkflow>(json, Options)
                 ?? throw new InvalidDataException("Workflow JSON is empty.");
 
-            if (workflow.SchemaVersion == 1)
+            if (workflow.SchemaVersion is 1 or 2)
             {
                 workflow = workflow with
                 {
@@ -59,31 +63,107 @@ public static class WorkflowJson
             throw new InvalidDataException("Workflow name is required.");
         if (workflow.Steps is null || workflow.Steps.Count == 0)
             throw new InvalidDataException("Workflow must contain at least one step.");
-        if (workflow.Steps.Any(step => step is null))
-            throw new InvalidDataException("Workflow steps cannot be null.");
-        if (workflow.Steps.Any(step => string.IsNullOrWhiteSpace(step.Id) || string.IsNullOrWhiteSpace(step.Module)))
-            throw new InvalidDataException("Every workflow step requires an id and module.");
-        if (workflow.Steps.Any(step => step.Parameters is null))
-            throw new InvalidDataException("Every workflow step requires a parameters object.");
 
         var variables = workflow.Variables ?? [];
+        ValidateVariables(variables);
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        ValidateSteps(workflow.Steps, variables, "workflow", ids);
+    }
+
+    private static void ValidateVariables(IReadOnlyList<AutomationVariableDefinition> variables)
+    {
         if (variables.Any(variable => string.IsNullOrWhiteSpace(variable.Name)))
             throw new InvalidDataException("Every workflow variable requires a name.");
 
-        if (variables.Any(variable =>
-            variable.Scope == AutomationVariableScope.Local &&
-            string.IsNullOrWhiteSpace(variable.StepId)))
+        if (variables.Any(variable => variable.Scope == AutomationVariableScope.Local && string.IsNullOrWhiteSpace(variable.StepId)))
             throw new InvalidDataException("Local workflow variables require a step id.");
-
-        var stepIds = workflow.Steps.Select(step => step.Id).ToHashSet(StringComparer.Ordinal);
-        if (variables.Any(variable =>
-            variable.Scope == AutomationVariableScope.Local &&
-            !stepIds.Contains(variable.StepId!)))
-            throw new InvalidDataException("Local workflow variables must reference an existing workflow step.");
 
         if (variables.Select(variable => variable.Key).Distinct(StringComparer.Ordinal).Count() != variables.Count)
             throw new InvalidDataException("Workflow variable keys must be unique.");
-        if (workflow.Steps.Select(step => step.Id).Distinct(StringComparer.Ordinal).Count() != workflow.Steps.Count)
-            throw new InvalidDataException("Workflow step ids must be unique.");
+
+        foreach (var variable in variables)
+        {
+            if (string.IsNullOrWhiteSpace(variable.Type))
+                throw new InvalidDataException($"Variable '{variable.Name}' requires a type.");
+        }
+    }
+
+    private static void ValidateSteps(
+        IReadOnlyList<WorkflowStep> steps,
+        IReadOnlyList<AutomationVariableDefinition> variables,
+        string path,
+        HashSet<string> ids)
+    {
+        var knownVariables = variables.Select(variable => variable.Name).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var step in steps)
+        {
+            if (step is null || string.IsNullOrWhiteSpace(step.Id))
+                throw new InvalidDataException($"Every workflow step requires an id ({path}).");
+
+            if (!ids.Add(step.Id))
+                throw new InvalidDataException($"Workflow step id '{step.Id}' is duplicated.");
+
+            switch (step)
+            {
+                case WorkflowStep moduleStep when moduleStep.Kind == WorkflowStepKind.Module:
+                    if (string.IsNullOrWhiteSpace(moduleStep.Module))
+                        throw new InvalidDataException($"Module step '{step.Id}' requires a module id.");
+                    break;
+
+                case IfStep ifStep:
+                    ValidateCondition(ifStep.Condition, knownVariables, ifStep.Id);
+                    ValidateSteps(ifStep.Then, variables, $"{path}/{ifStep.Id}/then", ids);
+                    if (ifStep.Else is not null)
+                        ValidateSteps(ifStep.Else, variables, $"{path}/{ifStep.Id}/else", ids);
+                    break;
+
+                case ForStep forStep:
+                    RequireVariable(forStep.Variable, knownVariables, forStep.Id);
+                    if (forStep.Step == 0)
+                        throw new InvalidDataException($"For step '{forStep.Id}' cannot have a zero step.");
+                    ValidateSteps(forStep.Body, variables, $"{path}/{forStep.Id}", ids);
+                    break;
+
+                case ForeachStep foreachStep:
+                    RequireVariable(foreachStep.Collection.TrimStart('$', '@'), knownVariables, foreachStep.Id);
+                    if (string.IsNullOrWhiteSpace(foreachStep.ItemVariable))
+                        throw new InvalidDataException($"Foreach step '{foreachStep.Id}' requires an item variable.");
+                    ValidateSteps(foreachStep.Body, variables, $"{path}/{foreachStep.Id}", ids);
+                    break;
+
+                case WhileStep whileStep:
+                    ValidateCondition(whileStep.Condition, knownVariables, whileStep.Id);
+                    if (whileStep.MaxIterations is <= 0)
+                        throw new InvalidDataException($"While step '{whileStep.Id}' requires a positive maxIterations value.");
+                    ValidateSteps(whileStep.Body, variables, $"{path}/{whileStep.Id}", ids);
+                    break;
+
+                case SetStep setStep:
+                    RequireVariable(setStep.Variable, knownVariables, setStep.Id);
+                    if (setStep.Operation != WorkflowSetOperation.Set && setStep.Value is null)
+                        throw new InvalidDataException($"Set step '{setStep.Id}' requires a value for {setStep.Operation}.");
+                    break;
+
+                default:
+                    throw new InvalidDataException($"Unsupported workflow step type '{step.Kind}'.");
+            }
+        }
+    }
+
+    private static void ValidateCondition(WorkflowCondition condition, HashSet<string> knownVariables, string stepId)
+    {
+        if (condition is null || string.IsNullOrWhiteSpace(condition.Variable))
+            throw new InvalidDataException($"Conditional step '{stepId}' requires a variable.");
+
+        RequireVariable(condition.Variable, knownVariables, stepId);
+    }
+
+    private static void RequireVariable(string name, HashSet<string> knownVariables, string stepId)
+    {
+        var normalized = name.TrimStart('$', '@');
+        if (!knownVariables.Contains(normalized))
+            throw new InvalidDataException($"Step '{stepId}' references unknown variable '{name}'.");
     }
 }

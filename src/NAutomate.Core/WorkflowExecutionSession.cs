@@ -3,7 +3,7 @@ using NAutomate.Parser;
 
 namespace NAutomate.Core;
 
-/// <summary>Provides debugger-style control over sequential workflow execution.</summary>
+/// <summary>Provides debugger-style control over top-level workflow nodes.</summary>
 public sealed class WorkflowExecutionSession : IAsyncDisposable
 {
     private readonly WorkflowEngine _engine;
@@ -29,130 +29,74 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
 
     public ExecutionControlState State
     {
-        get
-        {
-            lock (_gate)
-                return _state;
-        }
+        get { lock (_gate) return _state; }
     }
 
-    /// <summary>Starts or resumes continuous execution.</summary>
     public void Play() => Resume(ExecutionControlState.Running);
 
-    /// <summary>Pauses before the next workflow step. A step already running is allowed to finish.</summary>
     public void Pause()
     {
         lock (_gate)
         {
-            if (_state is ExecutionControlState.Completed or ExecutionControlState.Stopped)
-                return;
-
+            if (_state is ExecutionControlState.Completed or ExecutionControlState.Stopped) return;
             _state = ExecutionControlState.Paused;
         }
     }
 
-    /// <summary>Executes exactly one workflow step and then pauses.</summary>
     public void StepInto() => Resume(ExecutionControlState.StepInto);
 
-    /// <summary>Executes exactly one workflow step and then pauses. Step-over currently has the same granularity because workflows have no nested calls.</summary>
     public void StepOver() => Resume(ExecutionControlState.StepOver);
 
-    /// <summary>Stops execution and terminates the currently running module when it observes cancellation.</summary>
     public void Stop()
     {
         lock (_gate)
         {
-            if (_state is ExecutionControlState.Completed or ExecutionControlState.Stopped)
-                return;
-
+            if (_state is ExecutionControlState.Completed or ExecutionControlState.Stopped) return;
             _state = ExecutionControlState.Stopped;
             _resumeSignal.TrySetResult(true);
         }
-
         _stopSource.Cancel();
     }
 
-    /// <summary>Runs the workflow until completion, cancellation, or an execution failure.</summary>
+    /// <summary>Runs top-level workflow nodes while preserving mutable state across debugger steps.</summary>
     public async Task<WorkflowExecutionResult> RunAsync(CancellationToken cancellationToken = default)
     {
-        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-            cancellationToken,
-            _stopSource.Token);
-
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stopSource.Token);
         var token = linkedCancellation.Token;
         WorkflowJson.Validate(_workflow);
-
-        await _sink.OnEventAsync(
-            new("workflow", Message: $"Workflow: {_workflow.Name}"),
-            token);
+        var variables = _engine.CreateVariableStore(_workflow, _environment);
 
         try
         {
+            await _sink.OnEventAsync(new("workflow", Message: $"Workflow: {_workflow.Name}"), token);
+
             foreach (var step in _workflow.Steps)
             {
                 await WaitForExecutionPermissionAsync(token);
-
                 if (State == ExecutionControlState.Stopped)
                     return new WorkflowExecutionResult(WorkflowExecutionStatus.Cancelled);
 
-                var module = _engine.Resolve(step.Module);
-                await _sink.OnEventAsync(
-                    new("running", module.Descriptor.Id, StepId: step.Id),
-                    token);
+                await _engine.ExecuteStepAsync(_workflow, step, variables, _environment, _sink, token);
 
-                var result = await module.ExecuteAsync(
-                    new(_workflow, step, EnvironmentVariableResolver.ResolveParameters(step, _environment), token, _environment));
-
-                await _sink.OnEventAsync(
-                    new("output", module.Descriptor.Id, result.Output, step.Id),
-                    token);
-
-                if (!result.Succeeded)
-                {
-                    await _sink.OnEventAsync(
-                        new("failure", module.Descriptor.Id, Message: "Step failed", StepId: step.Id),
-                        token);
-
-                    SetTerminalState(ExecutionControlState.Stopped);
-                    return new WorkflowExecutionResult(
-                        WorkflowExecutionStatus.Failure,
-                        ErrorMessage: $"Step {step.Id} failed");
-                }
-
-                await _sink.OnEventAsync(
-                    new("success", module.Descriptor.Id, StepId: step.Id),
-                    token);
-
-                PauseAfterSingleStep();
+                if (State is ExecutionControlState.StepInto or ExecutionControlState.StepOver)
+                    PauseAfterSingleStep();
             }
 
             SetTerminalState(ExecutionControlState.Completed);
-            await _sink.OnEventAsync(
-                new("completed", Message: "Execution completed successfully."),
-                CancellationToken.None);
-
+            await _sink.OnEventAsync(new("completed", Message: "Execution completed successfully."), CancellationToken.None);
             return new WorkflowExecutionResult(WorkflowExecutionStatus.Success);
         }
         catch (OperationCanceledException)
         {
             SetTerminalState(ExecutionControlState.Stopped);
-            await _sink.OnEventAsync(
-                new("cancelled", Message: "Execution cancelled."),
-                CancellationToken.None);
-
+            await _sink.OnEventAsync(new("cancelled", Message: "Execution cancelled."), CancellationToken.None);
             return new WorkflowExecutionResult(WorkflowExecutionStatus.Cancelled);
         }
         catch (Exception ex)
         {
             SetTerminalState(ExecutionControlState.Stopped);
-            await _sink.OnEventAsync(
-                new("exception", Message: ex.Message),
-                CancellationToken.None);
-
-            return new WorkflowExecutionResult(
-                WorkflowExecutionStatus.Exception,
-                ErrorMessage: ex.Message,
-                Exception: ex);
+            await _sink.OnEventAsync(new("exception", Message: ex.Message), CancellationToken.None);
+            return new WorkflowExecutionResult(WorkflowExecutionStatus.Exception, ex.Message, ex);
         }
     }
 
@@ -167,9 +111,7 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
     {
         lock (_gate)
         {
-            if (_state is ExecutionControlState.Completed or ExecutionControlState.Stopped)
-                return;
-
+            if (_state is ExecutionControlState.Completed or ExecutionControlState.Stopped) return;
             _state = requestedState;
             _resumeSignal.TrySetResult(true);
         }
@@ -180,22 +122,16 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
         while (true)
         {
             Task signal;
-
             lock (_gate)
             {
-                if (_state is not ExecutionControlState.Paused)
-                    return;
-
+                if (_state is not ExecutionControlState.Paused) return;
                 signal = _resumeSignal.Task;
             }
 
             await signal.WaitAsync(cancellationToken);
-
             lock (_gate)
             {
-                if (_state is not ExecutionControlState.Paused)
-                    return;
-
+                if (_state is not ExecutionControlState.Paused) return;
                 _resumeSignal = CreateSignal();
             }
         }
@@ -205,11 +141,8 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
     {
         lock (_gate)
         {
-            if (_state is ExecutionControlState.StepInto or ExecutionControlState.StepOver)
-            {
-                _state = ExecutionControlState.Paused;
-                _resumeSignal = CreateSignal();
-            }
+            _state = ExecutionControlState.Paused;
+            _resumeSignal = CreateSignal();
         }
     }
 
@@ -225,4 +158,3 @@ public sealed class WorkflowExecutionSession : IAsyncDisposable
     private static TaskCompletionSource<bool> CreateSignal() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
-

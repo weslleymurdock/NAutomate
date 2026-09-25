@@ -157,7 +157,7 @@
                 {
                     <MudExpansionPanel Text="@family.Key" Icon="@ModuleIcon(family.Key)">
                         <MudExpansionPanels MultiExpansion="true" Dense="true" Gutters="false">
-                            @foreach (var serviceGroup in family.GroupBy(GetServiceGroupId))
+                            @foreach (var serviceGroup in family.Where(x => x.Services is not null && x.Services.Count > 0).GroupBy(GetServiceGroupId))
                             {
                                 var service = serviceGroup.SelectMany(module => module.Services ?? []).FirstOrDefault();
                                 if (service is null)
@@ -174,6 +174,13 @@
                                         }
                                     }
                                 </MudExpansionPanel>
+                            }
+
+                            @foreach (var module in family.Where(x => x.Services is null || x.Services.Count == 0))
+                            {
+                                <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@Icons.Material.Filled.Extension" OnClick="@(() => AddStandaloneModule(module))">
+                                    <span><span class="method-label">@module.DisplayName</span><span class="method-id">@module.Id</span></span>
+                                </MudButton>
                             }
                         </MudExpansionPanels>
                     </MudExpansionPanel>
@@ -378,6 +385,31 @@
         returnType.Equals("System.Void", StringComparison.OrdinalIgnoreCase)
             ? Icons.Material.Filled.PlayCircle
             : Icons.Material.Filled.Output;
+
+    private void AddStandaloneModule(ModuleDescriptor module)
+    {
+        if (HasActiveDebugSession)
+            return;
+
+        var step = new FlowStep(
+            Guid.NewGuid().ToString("N"),
+            module.DisplayName,
+            module.Id,
+            Icons.Material.Filled.Extension,
+            module.Id,
+            false,
+            80,
+            190 + (_steps.Count - 1) * 145,
+            module.Description,
+            module.Parameters.Select(parameter => new AutomationParameterDescriptor(
+                parameter.Name,
+                parameter.Type,
+                parameter.Required,
+                parameter.Description)).ToList());
+
+        _steps.Add(step);
+        _selected = step;
+    }
 
     private void AddStep(ModuleDescriptor module, AutomationServiceDescriptor service, AutomationOperationDescriptor operation)
     {

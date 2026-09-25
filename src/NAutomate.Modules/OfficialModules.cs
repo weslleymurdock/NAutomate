@@ -11,6 +11,7 @@ public static class OfficialModules
     public static IEnumerable<IAutomationModule> GetModules()
     {
         yield return new EchoModule();
+        yield return new SetModule();
 
         foreach (var module in AppiumModule.GetModules())
             yield return module;

@@ -3,7 +3,7 @@ using NAutomate.Abstractions;
 
 namespace NAutomate.Parser;
 
-/// <summary>Resolves declarative environment variable placeholders in workflow parameters.</summary>
+/// <summary>Resolves persisted execution-environment placeholders in workflow parameters.</summary>
 public static partial class EnvironmentVariableResolver
 {
     public static IReadOnlyDictionary<string, object?> ResolveParameters(
@@ -21,9 +21,7 @@ public static partial class EnvironmentVariableResolver
             StringComparer.Ordinal);
     }
 
-    public static string ResolveString(
-        string value,
-        IReadOnlyDictionary<string, string?> values)
+    public static string ResolveString(string value, IReadOnlyDictionary<string, string?> values)
     {
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(values);
@@ -37,24 +35,18 @@ public static partial class EnvironmentVariableResolver
         });
     }
 
-    private static object? ResolveValue(
-        object? value,
-        IReadOnlyDictionary<string, string?> values)
-    {
-        return value switch
+    private static object? ResolveValue(object? value, IReadOnlyDictionary<string, string?> values) =>
+        value switch
         {
             string text => ResolveString(text, values),
-            IReadOnlyDictionary<string, object?> dictionary =>
-                dictionary.ToDictionary(
-                    pair => pair.Key,
-                    pair => ResolveValue(pair.Value, values),
-                    StringComparer.Ordinal),
-            IEnumerable<object?> collection =>
-                collection.Select(item => ResolveValue(item, values)).ToArray(),
+            IReadOnlyDictionary<string, object?> dictionary => dictionary.ToDictionary(
+                pair => pair.Key,
+                pair => ResolveValue(pair.Value, values),
+                StringComparer.Ordinal),
+            IEnumerable<object?> collection => collection.Select(item => ResolveValue(item, values)).ToArray(),
             _ => value
         };
-    }
 
-    [GeneratedRegex(@"\$\{(?<key>[A-Za-z_][A-Za-z0-9_:\.-]*)\}")]
+    [GeneratedRegex(@"${(?<key>[A-Za-z_][A-Za-z0-9_:.-]*)}")]
     private static partial Regex PlaceholderRegex();
 }

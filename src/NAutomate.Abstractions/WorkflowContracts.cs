@@ -1,5 +1,37 @@
 namespace NAutomate.Abstractions;
 
+public enum WorkflowStepKind
+{
+    Module,
+    If,
+    For,
+    Foreach,
+    While,
+    Set
+}
+
+public enum WorkflowConditionOperator
+{
+    Equals,
+    NotEquals,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
+    Contains,
+    StartsWith,
+    EndsWith,
+    IsNull,
+    IsNotNull
+}
+
+public enum WorkflowSetOperation
+{
+    Set,
+    Increment,
+    Decrement
+}
+
 [AttributeUsage(AttributeTargets.Interface, Inherited = false)]
 public sealed class AutomationServiceAttribute(
     string id,
@@ -18,7 +50,7 @@ public sealed class AutomationOperationAttribute(
     string id,
     string displayName,
     string description,
-bool workflowInvocable = true) : Attribute
+    bool workflowInvocable = true) : Attribute
 {
     public string Id { get; } = id;
     public string DisplayName { get; } = displayName;
@@ -71,11 +103,100 @@ public sealed record AutomationWorkflow(
     IReadOnlyList<WorkflowStep> Steps,
     IReadOnlyList<AutomationVariableDefinition>? Variables = null);
 
-/// <summary>A single precompiled module invocation.</summary>
-public sealed record WorkflowStep(
+/// <summary>Base type for executable declarative workflow nodes.</summary>
+public record WorkflowStep
+{
+    protected WorkflowStep(
+        string id,
+        WorkflowStepKind kind,
+        string? module,
+        IReadOnlyDictionary<string, object?>? parameters)
+    {
+        Id = id;
+        Kind = kind;
+        Module = module;
+        Parameters = parameters ?? new Dictionary<string, object?>();
+    }
+
+    /// <summary>Creates the backwards-compatible module-step representation.</summary>
+    public WorkflowStep(
+        string id,
+        string module,
+        IReadOnlyDictionary<string, object?> parameters)
+        : this(id, WorkflowStepKind.Module, module, parameters)
+    {
+    }
+
+    public string Id { get; init; }
+    public WorkflowStepKind Kind { get; init; }
+    public string? Module { get; init; }
+    public IReadOnlyDictionary<string, object?> Parameters { get; init; }
+}
+
+/// <summary>A precompiled module invocation.</summary>
+public sealed record ModuleStep(
     string Id,
-    string Module,
-    IReadOnlyDictionary<string, object?> Parameters);
+    string ModuleId,
+    IReadOnlyDictionary<string, object?> ModuleParameters)
+    : WorkflowStep(Id, WorkflowStepKind.Module, ModuleId, ModuleParameters);
+
+/// <summary>A conditional branch with optional else steps.</summary>
+public sealed record IfStep(
+    string Id,
+    WorkflowCondition Condition,
+    IReadOnlyList<WorkflowStep> Then,
+    IReadOnlyList<WorkflowStep>? Else = null)
+    : WorkflowStep(Id, WorkflowStepKind.If, null, null);
+
+/// <summary>A numeric loop over an integer range.</summary>
+public sealed record ForStep(
+    string Id,
+    string Variable,
+    long From,
+    long To,
+    long Step = 1,
+    bool Inclusive = false,
+    IReadOnlyList<WorkflowStep>? Steps = null)
+    : WorkflowStep(Id, WorkflowStepKind.For, null, null)
+{
+    public IReadOnlyList<WorkflowStep> Body { get; init; } = Steps ?? [];
+}
+
+/// <summary>A loop over the value of a collection variable.</summary>
+public sealed record ForeachStep(
+    string Id,
+    string Collection,
+    string ItemVariable,
+    IReadOnlyList<WorkflowStep>? Steps = null)
+    : WorkflowStep(Id, WorkflowStepKind.Foreach, null, null)
+{
+    public IReadOnlyList<WorkflowStep> Body { get; init; } = Steps ?? [];
+}
+
+/// <summary>A condition-controlled loop.</summary>
+public sealed record WhileStep(
+    string Id,
+    WorkflowCondition Condition,
+    IReadOnlyList<WorkflowStep>? Steps = null,
+    int? MaxIterations = null)
+    : WorkflowStep(Id, WorkflowStepKind.While, null, null)
+{
+    public IReadOnlyList<WorkflowStep> Body { get; init; } = Steps ?? [];
+}
+
+/// <summary>A declarative variable assignment or numeric update.</summary>
+public sealed record SetStep(
+    string Id,
+    string Variable,
+    object? Value = null,
+    WorkflowSetOperation Operation = WorkflowSetOperation.Set)
+    : WorkflowStep(Id, WorkflowStepKind.Set, null, null);
+
+/// <summary>A typed comparison against a workflow variable.</summary>
+public sealed record WorkflowCondition(
+    string Variable,
+    WorkflowConditionOperator Operator,
+    object? Value = null);
 
 public sealed record ModuleParameterDefinition(string Name, string Type, bool Required, string? Description = null);
 
@@ -87,12 +208,25 @@ public sealed record ModuleDescriptor(
     IReadOnlyList<ModuleParameterDefinition> Parameters,
     IReadOnlyList<AutomationServiceDescriptor>? Services = null);
 
+/// <summary>Mutable variable state shared by all steps in one workflow execution.</summary>
+public interface IWorkflowVariableStore
+{
+    IReadOnlyCollection<string> Names { get; }
+    bool Contains(string name);
+    object? Get(string name);
+    bool TryGet(string name, out object? value);
+    void Set(string name, object? value);
+    bool Remove(string name);
+}
+
+/// <summary>Context supplied to a module during one workflow execution.</summary>
 public sealed record ModuleExecutionContext(
     AutomationWorkflow Workflow,
     WorkflowStep Step,
     IReadOnlyDictionary<string, object?> Parameters,
     CancellationToken CancellationToken,
-    AutomationEnvironment? Environment = null);
+    AutomationEnvironment? Environment = null,
+    IWorkflowVariableStore? Variables = null);
 
 public sealed record ModuleExecutionResult(string Output, bool Succeeded = true);
 
