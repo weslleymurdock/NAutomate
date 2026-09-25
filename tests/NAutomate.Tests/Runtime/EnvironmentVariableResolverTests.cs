@@ -1,5 +1,5 @@
 using NAutomate.Abstractions;
-using NAutomate.Core;
+using NAutomate.Parser;
 using Xunit;
 
 namespace NAutomate.Tests.Runtime;
