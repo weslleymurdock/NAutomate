@@ -58,3 +58,26 @@ public sealed class FileAutomationProjectStoreTests
         }
     }
 }
+
+
+    [Fact]
+    public async Task DeleteAsync_removes_project_directory_and_artifacts()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"nautomate-tests-{Guid.NewGuid():N}");
+        try
+        {
+            var store = new FileAutomationProjectStore(root);
+            var project = await store.CreateAsync("Delete me");
+            await File.WriteAllTextAsync(Path.Combine(project.DirectoryPath, "artifacts", "sample.txt"), "artifact");
+
+            await store.DeleteAsync(project);
+
+            Assert.False(Directory.Exists(project.DirectoryPath));
+            Assert.Empty(await store.ListAsync());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
+    }
