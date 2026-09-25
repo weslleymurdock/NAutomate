@@ -106,7 +106,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     {
         var directory = FindProjectDirectory(projectId);
         var manifest = await ReadManifestAsync(Path.Combine(directory, ProjectFileName), cancellationToken);
-        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
+        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: false);
         return ToInfo(manifest, directory, validation);
     }
 
