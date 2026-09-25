@@ -1,0 +1,351 @@
+body {
+    overflow-x: hidden;
+}
+
+.automation-editor {
+    display: grid;
+    grid-template-columns: 310px minmax(500px, 1fr) 300px;
+    height: calc(100vh - 120px);
+    min-height: 620px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--mud-palette-background);
+}
+
+.module-sidebar,
+.step-inspector {
+    overflow: auto;
+    background: var(--mud-palette-surface);
+}
+
+.module-sidebar {
+    border-right: 1px solid var(--mud-palette-lines-default);
+}
+
+.step-inspector {
+    border-left: 1px solid var(--mud-palette-lines-default);
+}
+
+.method-item {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    min-height: 42px;
+}
+
+.method-label {
+    display: block;
+    font-size: .82rem;
+}
+
+.method-id {
+    display: block;
+    font-size: .65rem;
+    opacity: .55;
+}
+
+.flow-canvas {
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.canvas-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    position: relative;
+    z-index: 4;
+    background: var(--mud-palette-surface);
+}
+
+.diagram-viewport {
+    position: relative;
+    height: calc(100% - 50px);
+    overflow: auto;
+    background: #101017;
+}
+
+.diagram-grid {
+    position: absolute;
+    inset: 0;
+    min-width: 1800px;
+    min-height: 1400px;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, .11) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+.diagram-links {
+    position: absolute;
+    inset: 0;
+    width: 1800px;
+    height: 1400px;
+    pointer-events: none;
+    color: var(--mud-palette-primary);
+    z-index: 2;
+}
+
+.flow-node {
+    position: absolute;
+    width: 230px;
+    min-height: 105px;
+    padding: 10px;
+    border: 1px solid var(--mud-palette-primary);
+    border-radius: 12px;
+    background: var(--mud-palette-surface);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .28);
+    cursor: grab;
+    user-select: none;
+    z-index: 3;
+}
+
+.flow-node:active {
+    cursor: grabbing;
+}
+
+.entry-node {
+    border-color: var(--mud-palette-success);
+}
+
+.node-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 6px;
+}
+
+.node-toolbar .mud-icon-button {
+    margin-left: auto;
+}
+
+.node-module {
+    opacity: .6;
+}
+
+.project-card {
+    height: 100%;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.project-card:hover {
+    transform: translateY(-3px);
+}
+
+@media(max-width:1100px) {
+    .automation-editor {
+        grid-template-columns: 260px minmax(400px, 1fr)
+    }
+
+    .step-inspector {
+        display: none
+    }
+}
+
+@media(max-width:800px) {
+    .automation-editor {
+        grid-template-columns: 1fr;
+        height: auto
+    }
+
+    .module-sidebar {
+        max-height: 380px;
+        border-right: 0;
+        border-bottom: 1px solid var(--mud-palette-lines-default)
+    }
+
+    .flow-canvas {
+        min-height: 700px
+    }
+}
+
+.active-node {
+    box-shadow: 0 0 0 3px var(--mud-palette-warning), 0 10px 32px rgba(0, 0, 0, .32);
+}
+
+.execution-console {
+    overflow: hidden;
+}
+
+.execution-output {
+    margin: 0;
+    padding: 12px 14px;
+    min-height: 120px;
+    max-height: 260px;
+    overflow: auto;
+    white-space: pre-wrap;
+    font-family: Consolas, Monaco, monospace;
+    font-size: .78rem;
+    background: var(--mud-palette-background-grey);
+}
+
+/* Hierarchical workflow editor */
+.workflow-tree-canvas {
+    overflow: auto;
+}
+
+.workflow-tree {
+    padding: 28px;
+    min-width: 720px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.workflow-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: max-content;
+    margin: 0 auto 18px;
+    padding: 10px 18px;
+    border: 1px solid var(--mud-palette-success);
+    border-radius: 999px;
+    background: var(--mud-palette-surface);
+    box-shadow: 0 5px 18px rgba(0, 0, 0, .16);
+}
+
+.workflow-entry::after {
+    content: "";
+    position: absolute;
+}
+
+.workflow-empty {
+    padding: 28px;
+    text-align: center;
+    border: 1px dashed var(--mud-palette-lines-default);
+    border-radius: 14px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.workflow-block {
+    position: relative;
+    margin: 14px 0;
+    padding: 10px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-left: 4px solid var(--mud-palette-primary);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--mud-palette-surface) 94%, var(--mud-palette-primary));
+    box-shadow: 0 5px 18px rgba(0, 0, 0, .14);
+}
+
+.workflow-block:hover {
+    border-color: var(--mud-palette-primary);
+}
+
+.workflow-block-active {
+    box-shadow: 0 0 0 2px var(--mud-palette-warning), 0 8px 24px rgba(0, 0, 0, .2);
+}
+
+.workflow-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.workflow-block-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.workflow-block-summary {
+    display: block;
+    margin: 3px 42px 8px 28px;
+    opacity: .72;
+    font-family: Consolas, Monaco, monospace;
+}
+
+.workflow-branch {
+    margin: 8px 0 0 20px;
+    padding: 8px 8px 8px 14px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 10px;
+    background: var(--mud-palette-background);
+}
+
+.workflow-branch-main {
+    border-left: 3px solid var(--mud-palette-success);
+}
+
+.workflow-branch-else {
+    border-left: 3px solid var(--mud-palette-warning);
+}
+
+.workflow-branch-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.workflow-dropzone {
+    padding: 12px;
+    border: 1px dashed var(--mud-palette-lines-default);
+    border-radius: 8px;
+    text-align: center;
+    color: var(--mud-palette-text-secondary);
+    font-size: .75rem;
+}
+
+.workflow-module {
+    border-left-color: var(--mud-palette-info);
+}
+
+.workflow-loop {
+    border-left-color: var(--mud-palette-secondary);
+}
+
+.workflow-if {
+    border-left-color: var(--mud-palette-primary);
+}
+
+.workflow-set {
+    border-left-color: var(--mud-palette-info);
+}
+
+.workflow-exit {
+    border-left-color: var(--mud-palette-error);
+}
+
+.variable-row {
+    background: var(--mud-palette-background);
+}
+
+@media(max-width:1100px) {
+    .automation-editor {
+        grid-template-columns: 250px minmax(500px, 1fr) 320px
+    }
+
+    .workflow-tree {
+        min-width: 620px
+    }
+}
+
+@media(max-width:800px) {
+    .automation-editor {
+        grid-template-columns: 1fr;
+        height: auto
+    }
+
+    .module-sidebar {
+        max-height: 420px
+    }
+
+    .flow-canvas {
+        min-height: 760px
+    }
+
+    .step-inspector {
+        display: block;
+        border-left: 0;
+        border-top: 1px solid var(--mud-palette-lines-default)
+    }
+
+    .workflow-tree {
+        min-width: 0;
+        padding: 16px
+    }
+}

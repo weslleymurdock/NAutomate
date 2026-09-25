@@ -61,11 +61,13 @@
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+        <PackageReference Include="MudBlazor" Version="9.*" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NAutomate.Core\NAutomate.Core.csproj" />
-    <ProjectReference Include="..\NAutomate.Parser\NAutomate.Parser.csproj" />
+        <ProjectReference Include="..\NAutomate.Core\NAutomate.Core.csproj" />
+        <ProjectReference Include="..\NAutomate.Modules\NAutomate.Modules.csproj" />
+        <ProjectReference Include="..\NAutomate.Parser\NAutomate.Parser.csproj" />
     </ItemGroup>
 
 </Project>
