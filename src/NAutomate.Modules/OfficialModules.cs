@@ -1,6 +1,7 @@
 using NAutomate.Abstractions;
 using NAutomate.Modules.Appium;
 using NAutomate.Modules.Core;
+using NAutomate.Modules.Shell.Pwsh;
 
 namespace NAutomate.Modules;
 
@@ -12,5 +13,7 @@ public static class OfficialModules
 
         foreach (var module in AppiumModule.GetModules())
             yield return module;
+
+        yield return ShellModule.GetModule();
     }
 }
