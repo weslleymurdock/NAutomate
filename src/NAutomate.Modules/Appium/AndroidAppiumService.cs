@@ -90,7 +90,7 @@ public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAn
 
     public string CurrentPackage => TypedDriver.CurrentPackage;
 
-    AppiumDriver Driver { get; };
+    AppiumDriver Driver { get; }
 
 }
 
