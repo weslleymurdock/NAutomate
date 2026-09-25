@@ -687,12 +687,25 @@ internal static class AppiumOperationInvoker
                 parameters.Select(x => new AutomationParameterDescriptor(
                     x.Name, x.Type, x.Required, x.Description)).ToArray());
 
+            var properties = serviceType.GetProperties()
+                .Select(property => (property, metadata: property.GetCustomAttribute<AutomationOperationAttribute>()))
+                .Where(item => item.metadata is not null)
+                .Select(item => new AutomationPropertyDescriptor(
+                    item.property.Name,
+                    item.metadata!.DisplayName,
+                    item.metadata.Description,
+                    item.property.PropertyType.FullName ?? item.property.PropertyType.Name,
+                    item.property.CanRead,
+                    item.property.CanWrite))
+                .ToArray();
+
             var serviceDescriptor = new AutomationServiceDescriptor(
                 serviceMetadata.Id,
                 serviceMetadata.DisplayName,
                 serviceMetadata.Description,
                 serviceMetadata.Version,
-                [operationDescriptor]);
+                [operationDescriptor],
+                properties);
 
             return new ModuleDescriptor(
                 id,
