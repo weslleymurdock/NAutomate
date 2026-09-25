@@ -2,6 +2,7 @@ using NAutomate.Abstractions;
 using NAutomate.Modules.Appium;
 using NAutomate.Modules.Core;
 using NAutomate.Modules.Shell;
+using NAutomate.Modules.Selenium;
 
 namespace NAutomate.Modules;
 
@@ -15,6 +16,9 @@ public static class OfficialModules
             yield return module;
 
         foreach (var module in ShellModule.GetModules())
+            yield return module;
+
+        foreach (var module in SeleniumModule.GetModules())
             yield return module;
     }
 }
