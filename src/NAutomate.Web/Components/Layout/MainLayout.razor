@@ -5,6 +5,8 @@
 <MudPopoverProvider />
 <MudSnackbarProvider />
 
+<StartupDependencyNotifications />
+
 <MudLayout>
     <MudAppBar>
         <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="DrawerToggle" />
@@ -45,8 +47,8 @@
         };
     }
 
-    private void DrawerToggle()  { _drawerOpen = !_drawerOpen; StateHasChanged(); }
-    private void DrawerClose()  { _drawerOpen = false; StateHasChanged(); }
+    private void DrawerToggle() { _drawerOpen = !_drawerOpen; StateHasChanged(); }
+    private void DrawerClose() { _drawerOpen = false; StateHasChanged(); }
     private void DarkModeToggle() { _isDarkMode = !_isDarkMode; StateHasChanged(); }
 
     private readonly PaletteLight _lightPalette = new()
