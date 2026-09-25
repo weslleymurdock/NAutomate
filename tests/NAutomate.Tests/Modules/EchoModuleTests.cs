@@ -6,7 +6,7 @@ using NAutomate.Abstractions;
 using NAutomate.Modules.Core;
 using Xunit;
 
-namespace NAutomate.Modules.Tests;
+namespace NAutomate.Tests.Modules;
 
 public sealed class EchoModuleTests
 {

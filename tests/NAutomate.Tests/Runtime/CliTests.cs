@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using Xunit;
 using NAutomate.Core;
 using NAutomate.Abstractions;
+using NAutomate.Parser;
 
 namespace NAutomate.Tests.Runtime;
-
 
 public sealed class CliTests
 {

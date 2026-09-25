@@ -15,7 +15,7 @@ public sealed class ExecutionEnvironmentStoreTests
             new AutomationVariableDefinition("baseUrl"),
             new AutomationVariableDefinition("username"));
 
-        var environment = await store.CreateAsync("Development", workflow);
+        var environment = await store.CreateAsync("Development", workflow, TestContext.Current.CancellationToken);
 
         Assert.Null(environment.Values["baseUrl"]);
         Assert.Null(environment.Values["username"]);
@@ -27,8 +27,8 @@ public sealed class ExecutionEnvironmentStoreTests
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "environments.json");
         var store = new FileExecutionEnvironmentStore(path);
         var initial = CreateWorkflow(new AutomationVariableDefinition("baseUrl"));
-        var development = await store.CreateAsync("Development", initial);
-        var staging = await store.CreateAsync("Staging", initial);
+        var development = await store.CreateAsync("Development", initial, TestContext.Current.CancellationToken);
+        var staging = await store.CreateAsync("Staging", initial, TestContext.Current.CancellationToken);
 
         var updated = initial with
         {
@@ -39,7 +39,7 @@ public sealed class ExecutionEnvironmentStoreTests
             ]
         };
 
-        var environments = await store.SynchronizeAsync(updated);
+        var environments = await store.SynchronizeAsync(updated, TestContext.Current.CancellationToken);
 
         Assert.Equal(2, environments.Count);
         Assert.All(environments, environment =>

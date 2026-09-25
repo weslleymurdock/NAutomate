@@ -10,7 +10,6 @@
     <Project Path="src/NAutomate/NAutomate.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/NAutomate.Modules.Tests/NAutomate.Modules.Tests.csproj" />
     <Project Path="tests/NAutomate.Tests/NAutomate.Tests.csproj" />
   </Folder>
 </Solution>

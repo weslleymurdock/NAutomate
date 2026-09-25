@@ -1,7 +1,7 @@
 using NAutomate.Modules;
 using Xunit;
 
-namespace NAutomate.Modules.Tests;
+namespace NAutomate.Tests.Modules;
 
 public sealed class AppiumModuleTests
 {
