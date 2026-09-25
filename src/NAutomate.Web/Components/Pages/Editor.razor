@@ -9,7 +9,10 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/" />
-            <div><MudText Typo="Typo.h5">Automation editor / debugger</MudText><MudText Typo="Typo.caption" Color="Color.Secondary">@_steps.Count steps · Entry point cannot be removed</MudText></div>
+            <div>
+                <MudText Typo="Typo.h5">Automation editor / debugger</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@_steps.Count steps · Entry point cannot be removed</MudText>
+            </div>
         </MudStack>
         <MudStack Row="true" Spacing="1">
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.BugReport">Debug</MudButton>
