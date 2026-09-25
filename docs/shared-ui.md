@@ -4,7 +4,7 @@ NAutomate.UI is a Razor Class Library that contains the reusable Blazor UI for N
 
 ## Consumers
 
-Both the Web host and a .NET MAUI Blazor Hybrid host should reference:
+The repository contains the .NET MAUI Blazor Hybrid host at `src/NAutomate` and the Web host at `src/NAutomate.Web`. Both reference the shared UI library.\n\nBoth hosts should reference:
 
     src/NAutomate.UI/NAutomate.UI.csproj
 
@@ -47,6 +47,6 @@ The workflow editor is composed of:
 - EditorFlowStep.cs
 - EditorFlowStepNode.razor
 
-Palette items are draggable. Every executable branch exposes an explicit drop target, including the workflow root, IF THEN, IF ELSE, FOR BODY, FOREACH BODY and WHILE BODY. The destination is therefore selected by the physical drop location instead of an implicit "selected container" state.
+Palette items are draggable. Every executable branch exposes an explicit drop target, including the workflow root, IF THEN, IF ELSE, FOR BODY, FOREACH BODY and WHILE BODY. The destination is therefore selected by the physical drop location instead of an implicit "selected container" state. Drop targets are also available between sibling steps, so a dragged step can be inserted at an exact position without changing the surrounding editor layout.
 
 The workflow canvas is the scrolling region. Environment selection and global variables are kept in a dialog so they do not consume the editor's permanent vertical space.
