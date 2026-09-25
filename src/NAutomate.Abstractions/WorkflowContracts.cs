@@ -233,7 +233,8 @@ public sealed record ModuleExecutionContext(
     IReadOnlyDictionary<string, object?> Parameters,
     CancellationToken CancellationToken,
     AutomationEnvironment? Environment = null,
-    IWorkflowVariableStore? Variables = null);
+    IWorkflowVariableStore? Variables = null,
+    Projects.AutomationProjectSettings? Settings = null);
 
 public sealed record ModuleExecutionResult(string Output, bool Succeeded = true);
 
