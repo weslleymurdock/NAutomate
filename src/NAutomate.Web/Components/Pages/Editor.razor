@@ -1,0 +1,137 @@
+@page "/editor"
+@rendermode InteractiveServer
+@using NAutomate.Abstractions
+@inject IModuleRegistry ModuleRegistry
+@inject IJSRuntime JS
+
+<PageTitle>Automation Editor</PageTitle>
+<MudStack Spacing="2" Class="editor-shell">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/" />
+            <div><MudText Typo="Typo.h5">Automation editor / debugger</MudText><MudText Typo="Typo.caption" Color="Color.Secondary">@_steps.Count steps · Entry point cannot be removed</MudText></div>
+        </MudStack>
+        <MudStack Row="true" Spacing="1">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.BugReport">Debug</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+            <MudIconButton Icon="@Icons.Material.Filled.Settings" Href="/settings" />
+        </MudStack>
+    </MudStack>
+
+    <div class="automation-editor">
+        <aside class="module-sidebar">
+            <MudText Typo="Typo.subtitle1" Class="pa-3">Services & methods</MudText>
+            <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Dense="true" Class="px-3 pb-3" />
+            @foreach (var module in Modules)
+            {
+                <MudExpansionPanel Text="@module.DisplayName" Icon="@ModuleIcon(module.Id)" Dense="true">
+                    @foreach (var service in module.Services ?? [])
+                    {
+                        <MudExpansionPanel Text="@service.DisplayName" Icon="@Icons.Material.Filled.Smartphone" Dense="true">
+                            @foreach (var operation in service.Operations.Where(OperationMatches))
+                            {
+                                <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@MethodIcon(operation.ReturnType)" OnClick="@(() => AddStep(module, service, operation))">
+                                    <span><span class="method-label">@operation.DisplayName</span><span class="method-id">@operation.Id</span></span>
+                                </MudButton>
+                            }
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanel>
+            }
+        </aside>
+
+        <main class="flow-canvas">
+            <div class="canvas-toolbar">
+                <MudChip T="string" Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary">Flow graph</MudChip>
+                <MudSpacer />
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.AutoFixHigh" OnClick="ResetLayout">Auto layout</MudButton>
+            </div>
+            <div class="diagram-viewport">
+                <div class="diagram-grid"></div>
+                <svg class="diagram-links" aria-hidden="true">
+                    @for (var i = 0; i < _steps.Count - 1; i++) { <line class="flow-link" data-from="@_steps[i].Id" data-to="@_steps[i + 1].Id" /> }
+                    <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" /></marker></defs>
+                </svg>
+                @foreach (var step in _steps)
+                {
+                    <div id="node-@step.Id" class="flow-node @(step.IsEntry ? "entry-node" : "")" style="left:@(step.X)px;top:@(step.Y)px" @onclick="@(() => SelectStep(step))">
+                        <div class="node-toolbar">
+                            <MudIcon Icon="@step.Icon" Size="Size.Small" /><MudText Typo="Typo.caption">@step.Kind</MudText>
+                            @if (!step.IsEntry) { <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveStep(step.Id))" /> }
+                        </div>
+                        <MudText Typo="Typo.subtitle2">@step.Title</MudText>
+                        <MudText Typo="Typo.caption" Class="node-module">@step.Module</MudText>
+                        @if (!step.IsEntry) { <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Tune" OnClick="@(() => SelectStep(step))">Parameters</MudButton> }
+                    </div>
+                }
+            </div>
+        </main>
+
+        <aside class="step-inspector">
+            @if (_selected is null)
+            {
+                <MudStack Class="pa-4" Spacing="2"><MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Large" Color="Color.Primary" /><MudText Typo="Typo.h6">Step inspector</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Select a step to fill method arguments.</MudText></MudStack>
+            }
+            else
+            {
+                <MudStack Class="pa-4" Spacing="2">
+                    <MudText Typo="Typo.h6">@_selected.Title</MudText><MudText Typo="Typo.caption" Color="Color.Secondary">@_selected.Description</MudText><MudDivider />
+                    @foreach (var parameter in _selected.Parameters)
+                    {
+                        <MudTextField Value="@GetParameter(_selected, parameter.Name)" ValueChanged="@((string? value) => SetParameter(_selected, parameter.Name, value))" Label="@parameter.Name" HelperText="@parameter.Description" Variant="Variant.Outlined" />
+                    }
+                </MudStack>
+            }
+        </aside>
+    </div>
+</MudStack>
+
+@code {
+    private string _search = string.Empty;
+    private FlowStep? _selected;
+    private readonly List<FlowStep> _steps = [new("entry", "Entrypoint", "workflow.entry", Icons.Material.Filled.PlayArrow, "Entry point", true, 80, 50, "Immutable workflow entry point.", [])];
+
+    private IEnumerable<ModuleDescriptor> Modules => ModuleRegistry.List().Where(x => x.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Id.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("nautomateFlow.enableDragging");
+        await JS.InvokeVoidAsync("nautomateFlow.updateLinks");
+    }
+
+    private bool OperationMatches(AutomationOperationDescriptor operation) => string.IsNullOrWhiteSpace(_search) || operation.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) || operation.Id.Contains(_search, StringComparison.OrdinalIgnoreCase);
+    private static string ModuleIcon(string id) => id.StartsWith("appium", StringComparison.OrdinalIgnoreCase) ? Icons.Material.Filled.Smartphone : Icons.Material.Filled.Extension;
+    private static string MethodIcon(string returnType) => returnType.Equals("System.Void", StringComparison.OrdinalIgnoreCase) ? Icons.Material.Filled.PlayCircle : Icons.Material.Filled.Output;
+
+    private void AddStep(ModuleDescriptor module, AutomationServiceDescriptor service, AutomationOperationDescriptor operation)
+    {
+        var step = new FlowStep(Guid.NewGuid().ToString("N"), operation.DisplayName, $"{module.Id} · {service.DisplayName}", MethodIcon(operation.ReturnType), operation.Id, false, 80, 190 + (_steps.Count - 1) * 145, operation.Description, operation.Parameters.ToList());
+        _steps.Add(step); _selected = step;
+    }
+
+    private void RemoveStep(string id)
+    {
+        if (id == "entry") return;
+        _steps.RemoveAll(x => x.Id == id);
+        if (_selected?.Id == id) _selected = null;
+    }
+
+    private void SelectStep(FlowStep step) => _selected = step;
+    private string? GetParameter(FlowStep step, string name) => step.Values.TryGetValue(name, out var value) ? value : null;
+    private void SetParameter(FlowStep step, string name, string? value) => step.Values[name] = value;
+
+    private async void ResetLayout()
+    {
+        for (var i = 0; i < _steps.Count; i++) { _steps[i].X = 80; _steps[i].Y = 50 + i * 145; }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private sealed class FlowStep
+    {
+        public FlowStep(string id, string title, string module, string icon, string kind, bool isEntry, double x, double y, string description, List<AutomationParameterDescriptor> parameters)
+        { Id=id; Title=title; Module=module; Icon=icon; Kind=kind; IsEntry=isEntry; X=x; Y=y; Description=description; Parameters=parameters; }
+        public string Id { get; } public string Title { get; } public string Module { get; } public string Icon { get; } public string Kind { get; } public bool IsEntry { get; }
+        public double X { get; set; } public double Y { get; set; } public string Description { get; } public List<AutomationParameterDescriptor> Parameters { get; }
+        public Dictionary<string, string?> Values { get; } = new(StringComparer.Ordinal);
+    }
+}
