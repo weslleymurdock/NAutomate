@@ -10,12 +10,7 @@ public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumS
     protected override IOSDriver CreateDriver(Uri serverUrl, AppiumOptions options) =>
         new(serverUrl, options);
 
-    public void SetSetting(string setting, object value) =>
-        ExecuteScript("mobile: setSetting", new Dictionary<string, object>
-        {
-            ["setting"] = setting,
-            ["value"] = value
-        });
+    public void SetSetting(string setting, object value) => TypedDriver.SetSetting(setting, value);
 
     public void ShakeDevice() => TypedDriver.ShakeDevice();
 
