@@ -49,6 +49,6 @@ public static partial class EnvironmentVariableResolver
         };
     }
 
-    [GeneratedRegex(@"${(?<key>[A-Za-z_][A-Za-z0-9_:.-]*)}")]
+    [GeneratedRegex(@"\$\{(?<key>[A-Za-z_][A-Za-z0-9_:\.-]*)\}")]
     private static partial Regex PlaceholderRegex();
 }
