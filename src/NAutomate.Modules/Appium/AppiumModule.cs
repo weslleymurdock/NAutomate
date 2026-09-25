@@ -283,12 +283,59 @@ public interface IIOSAppiumService : IAppiumService
     Task StopSyslogBroadcast();
 }
 
-public abstract class AppiumServiceBase<TDriver>(TDriver driver) where TDriver : AppiumDriver
+public abstract class AppiumServiceBase<TDriver> where TDriver : AppiumDriver
 {
     private readonly ConcurrentDictionary<string, AppiumElement> _elements = new(StringComparer.Ordinal);
     private int _nextElementId;
+    private TDriver? _driver;
 
-    public TDriver Driver { get; } = driver;
+    public TDriver Driver =>
+        _driver ?? throw new InvalidOperationException("No Appium session is active.");
+
+    protected abstract TDriver CreateDriver(Uri serverUrl, AppiumOptions options);
+
+    public async Task<string> StartSessionAsync(
+        string serverUrl,
+        string deviceName,
+        string? platformVersion = null,
+        string? automationName = null,
+        string? app = null,
+        string? udid = null,
+        string? appPackage = null,
+        string? appActivity = null,
+        string? bundleId = null,
+        bool noReset = false,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_driver is not null)
+            throw new InvalidOperationException("An Appium session is already active.");
+
+        var options = new AppiumOptions
+        {
+            DeviceName = deviceName,
+            AutomationName = automationName ?? string.Empty,
+            App = app ?? string.Empty
+        };
+
+        Add(options, "platformVersion", platformVersion);
+        Add(options, "udid", udid);
+        Add(options, "appPackage", appPackage);
+        Add(options, "appActivity", appActivity);
+        Add(options, "bundleId", bundleId);
+        Add(options, "noReset", noReset);
+
+        _driver = CreateDriver(new Uri(serverUrl), options);
+
+        return await Task.FromResult(_driver.SessionId);
+    }
+
+    private static void Add(AppiumOptions options, string name, object? value)
+    {
+        if (value is not null)
+            options.AddAdditionalAppiumOption(name, value);
+    }
 
     protected string StoreElement(AppiumElement element)
     {
@@ -405,41 +452,13 @@ public abstract class AppiumServiceBase<TDriver>(TDriver driver) where TDriver :
 
     public string GetScreenshot() => Convert.ToBase64String(Driver.GetScreenshot().AsByteArray);
 
-    public abstract Task<string> StartSessionAsync(
-        string serverUrl,
-        string deviceName,
-        string? platformVersion = null,
-        string? automationName = null,
-        string? app = null,
-        string? udid = null,
-        string? appPackage = null,
-        string? appActivity = null,
-        string? bundleId = null,
-        bool noReset = false,
-        CancellationToken cancellationToken = default);
+
 }
 
 public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAndroidAppiumService
 {
-    public AndroidAppiumService(AndroidDriver driver) : base(driver) { }
-
-    public static AndroidAppiumService Create(Uri serverUrl, AppiumOptions options) =>
-        new(new AndroidDriver(serverUrl, options));
-
-    public override Task<string> StartSessionAsync(
-        string serverUrl,
-        string deviceName,
-        string? platformVersion = null,
-        string? automationName = null,
-        string? app = null,
-        string? udid = null,
-        string? appPackage = null,
-        string? appActivity = null,
-        string? bundleId = null,
-        bool noReset = false,
-        CancellationToken cancellationToken = default) =>
-        throw new InvalidOperationException(
-            "AndroidAppiumService must be created with an active AndroidDriver. Use AndroidAppiumSessionFactory for session creation.");
+    protected override AndroidDriver CreateDriver(Uri serverUrl, AppiumOptions options) =>
+        new(serverUrl, options);
 
     public void StartActivity(
         string intent,
@@ -525,22 +544,8 @@ public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAn
 
 public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumService
 {
-    public IOSAppiumService(IOSDriver driver) : base(driver) { }
-
-    public override Task<string> StartSessionAsync(
-        string serverUrl,
-        string deviceName,
-        string? platformVersion = null,
-        string? automationName = null,
-        string? app = null,
-        string? udid = null,
-        string? appPackage = null,
-        string? appActivity = null,
-        string? bundleId = null,
-        bool noReset = false,
-        CancellationToken cancellationToken = default) =>
-        throw new InvalidOperationException(
-            "IOSAppiumService must be created with an active IOSDriver. Use IOSAppiumSessionFactory for session creation.");
+    protected override IOSDriver CreateDriver(Uri serverUrl, AppiumOptions options) =>
+        new(serverUrl, options);
 
     public void SetSetting(string setting, object value) => Driver.SetSetting(setting, value);
 
@@ -604,7 +609,8 @@ public static class AndroidAppiumSessionFactory
         Add(options, "appActivity", appActivity);
         Add(options, "noReset", noReset);
 
-        return AndroidAppiumService.Create(new Uri(serverUrl), options);
+        var service = new AndroidAppiumService();
+        return service;
     }
 
     private static void Add(AppiumOptions options, string name, object? value)
@@ -639,7 +645,7 @@ public static class IOSAppiumSessionFactory
         Add(options, "bundleId", bundleId);
         Add(options, "noReset", noReset);
 
-        return new IOSAppiumService(new IOSDriver(new Uri(serverUrl), options));
+        return new IOSAppiumService();
     }
 
     private static void Add(AppiumOptions options, string name, object? value)
