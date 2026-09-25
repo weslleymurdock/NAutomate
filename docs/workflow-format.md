@@ -1,33 +1,24 @@
-# Workflow Format
+# Workflow format
 
-Workflow files are versioned declarative documents.
+Workflow JSON is parsed and validated by NAutomate.Parser.WorkflowJson.
 
-Minimum shape:
+The workflow remains declarative: JSON contains module IDs and serializable parameter values; it never contains executable C#.
 
-```json
-{
-  "schemaVersion": 1,
-  "name": "Hello World",
-  "steps": [
-    {
-      "id": "step-001",
-      "module": "core.echo",
-      "parameters": {
-        "message": "Hello from NAutomate"
-      }
-    }
-  ]
-}
-```
+## Variables
 
-## Rules
+Variables are declared in the workflow and values are stored separately in execution environments.
 
-- `schemaVersion` is mandatory.
-- Module identifiers are stable strings.
-- Parameters are serializable data.
-- Every step contains a parameters object; it may be empty when the selected module requires no parameters.
-- Step IDs identify execution records.
-- Do not store C# source, generated code, assemblies, or executable delegates in workflow JSON.
-- Schema changes must be deliberate and documented.
+- Global variable: ${name}
+- Local variable: ${stepId:name}
 
-The first implementation only requires `core.echo`.
+Placeholder resolution is implemented by NAutomate.Parser.EnvironmentVariableResolver, not by a UI.
+
+## Operation parameters
+
+Presentation hosts may collect parameter values as text, but conversion to the operation's declared CLR type is performed by NAutomate.Parser.WorkflowParameterParser.
+
+This is important for values such as booleans, numbers, enums, GUIDs, arrays, and other typed module parameters. A future MAUI editor must use the same parser instead of implementing a second conversion system.
+
+## Persistence
+
+Execution-environment JSON serialization is centralized in NAutomate.Parser.ExecutionEnvironmentJson. Environment lifecycle and persistence orchestration remain in Core.
