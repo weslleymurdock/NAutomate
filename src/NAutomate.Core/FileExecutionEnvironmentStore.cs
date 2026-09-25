@@ -84,7 +84,9 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
             if (index < 0)
                 throw new KeyNotFoundException($"Execution environment '{environment.Id}' was not found.");
 
-            var values = AutomationWorkflowVariables.CreateValues(workflow, environment.Values);
+            var values = AutomationWorkflowVariables.CreateValues(
+                workflow,
+                environment.Values.ToDictionary(x => x.Key, x => (object?)x.Value, StringComparer.Ordinal));
             var saved = environment with { Values = AutomationWorkflowVariables.ToPersistedValues(values) };
             environments[index] = saved;
             await WriteAsync(environments, cancellationToken);
