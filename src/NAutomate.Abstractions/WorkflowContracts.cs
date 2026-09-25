@@ -102,7 +102,11 @@ public sealed record AutomationWorkflow(
     int SchemaVersion,
     string Name,
     IReadOnlyList<WorkflowStep> Steps,
-    IReadOnlyList<AutomationVariableDefinition>? Variables = null);
+    IReadOnlyList<AutomationVariableDefinition>? Variables = null)
+{
+    
+}
+
 
 /// <summary>Base type for executable declarative workflow nodes.</summary>
 public record WorkflowStep

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -94,19 +95,17 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
             Workflow = new AutomationWorkflow(
                 WorkflowJson.CurrentSchemaVersion,
                 name.Trim(),
-                [],
                 [
-                    new WorkflowStep
-                    {
-                        Id = "step-001",
-                        Kind = WorkflowStepKind.Module,
-                        Module = "core.echo",
-                        Parameters = new Dictionary<string, object?>
+                    new WorkflowStep(id:"step-001", "core.echo", 
+                        new Dictionary<string, object?>
                         {
                             ["message"] = "hello world"
-                        }
+                        })
+                    {
+                        Kind = WorkflowStepKind.Module
                     }
-                ]),
+                ],
+                []),
             Settings = new AutomationProjectSettings(),
             Environment = new AutomationEnvironmentFile()
         };
