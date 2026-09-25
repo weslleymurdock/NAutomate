@@ -14,7 +14,7 @@ public sealed class SetModule : IAutomationModule
         [
             new ModuleParameterDefinition("variable", "string", true, "Variable name."),
             new ModuleParameterDefinition("value", "object", false, "Value or variable reference."),
-            new ModuleParameterDefinition("operation", nameof(WorkflowSetOperation), false, "Set, Increment, or Decrement.")
+            new ModuleParameterDefinition("operation", typeof(WorkflowSetOperation).FullName!, false, "Set, Increment, or Decrement.")
         ]);
 
     public Task<ModuleExecutionResult> ExecuteAsync(ModuleExecutionContext context)
