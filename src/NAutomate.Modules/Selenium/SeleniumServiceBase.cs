@@ -67,7 +67,7 @@ public abstract class SeleniumServiceBase : ISeleniumService, IDisposable
         return GetElement(elementId).GetAttribute(attribute);
     }
 
-    public string Screenshot() => Driver.GetScreenshot().AsBase64Encoded;
+    public string Screenshot() => ((ITakesScreenshot)Driver).GetScreenshot().AsBase64Encoded;
 
     public void StopSession()
     {
