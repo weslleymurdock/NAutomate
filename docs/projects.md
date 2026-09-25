@@ -8,6 +8,8 @@ Each project directory is named:
 
 `{guid}-{lowercase-project-name}`
 
+Each project also contains an `artifacts/` directory for files consumed or produced by the automation.
+
 Each project contains four required JSON files:
 
 - `automation.json` — the declarative workflow and its global variable definitions.
