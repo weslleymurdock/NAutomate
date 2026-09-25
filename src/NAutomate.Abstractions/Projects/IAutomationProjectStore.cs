@@ -16,5 +16,5 @@ public interface IAutomationProjectStore
 
     Task<AutomationProjectValidationResult> ValidateAsync(Guid projectId, CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(Guid projectId, CancellationToken cancellationToken = default);
+    Task DeleteAsync(AutomationProjectInfo project, CancellationToken cancellationToken = default);
 }
