@@ -111,7 +111,8 @@ internal static class PwshShellOperationInvoker
 
         private static object?[] BindArguments(
             MethodInfo method,
-            IReadOnlyDictionary<string, object?> parameters)
+            IReadOnlyDictionary<string, object?> parameters,
+            CancellationToken cancellationToken)
         {
             return [.. method.GetParameters().Select(parameter =>
             {
