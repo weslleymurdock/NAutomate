@@ -17,13 +17,17 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
     }
 
     public async Task<IReadOnlyList<AutomationEnvironment>> ListAsync(
+        string workflowName,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflowName);
         await _gate.WaitAsync(cancellationToken);
 
         try
         {
-            return await ReadAsync(cancellationToken);
+            return (await ReadAsync(cancellationToken))
+                .Where(x => string.Equals(x.WorkflowName, workflowName, StringComparison.Ordinal))
+                .ToList();
         }
         finally
         {
@@ -48,6 +52,7 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
 
             var environment = new AutomationEnvironment(
                 Guid.NewGuid().ToString("N"),
+                workflow.Name,
                 name.Trim(),
                 AutomationWorkflowVariables.CreateValues(workflow));
 
@@ -73,7 +78,9 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
         try
         {
             var environments = await ReadAsync(cancellationToken);
-            var index = environments.FindIndex(x => x.Id == environment.Id);
+            var index = environments.FindIndex(x =>
+                x.Id == environment.Id &&
+                string.Equals(x.WorkflowName, workflow.Name, StringComparison.Ordinal));
             if (index < 0)
                 throw new KeyNotFoundException($"Execution environment '{environment.Id}' was not found.");
 
@@ -119,16 +126,20 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
         {
             var environments = await ReadAsync(cancellationToken);
             var synchronized = environments
-                .Select(environment => environment with
-                {
-                    Values = AutomationWorkflowVariables.CreateValues(workflow, environment.Values)
-                })
+                .Select(environment => string.Equals(environment.WorkflowName, workflow.Name, StringComparison.Ordinal)
+                    ? environment with
+                    {
+                        Values = AutomationWorkflowVariables.CreateValues(workflow, environment.Values)
+                    }
+                    : environment)
                 .ToList();
 
-            if (synchronized.Count != 0)
+            if (synchronized.Any())
                 await WriteAsync(synchronized, cancellationToken);
 
-            return synchronized;
+            return synchronized
+                .Where(x => string.Equals(x.WorkflowName, workflow.Name, StringComparison.Ordinal))
+                .ToList();
         }
         finally
         {
