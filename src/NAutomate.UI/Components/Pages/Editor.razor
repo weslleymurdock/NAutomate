@@ -569,15 +569,6 @@
             AssignSequences(child);
     }
 
-    private IEnumerable<EditorFlowStep> Flatten(EditorFlowStep step)
-    {
-        yield return step;
-        foreach (var child in step.Children.SelectMany(Flatten))
-            yield return child;
-        foreach (var child in step.ElseChildren.SelectMany(Flatten))
-            yield return child;
-    }
-
     private EditorFlowStep CreateEditorStep(WorkflowStep step)
     {
         EditorFlowStep editor = step switch
