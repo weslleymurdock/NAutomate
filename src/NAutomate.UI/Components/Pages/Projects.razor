@@ -5,7 +5,7 @@
 
 <PageTitle>Projects</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="pa-6">
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-6">\n    @if (!string.IsNullOrWhiteSpace(_error))\n    {\n        <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>\n    }
     <MudStack Spacing="4">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
             <div>
@@ -44,8 +44,16 @@
                             <MudButton Color="Color.Primary"
                                        Disabled="@(project.Id == Guid.Empty)"
                                        OnClick="@(() => Navigation.NavigateTo($"/editor/{project.Id:D}"))">
-                                Open
+                                @(project.IsValid ? "Open" : "Resolve")
                             </MudButton>
+                            @if (!project.IsValid && project.Id == Guid.Empty)
+                            {
+                                <MudButton Color="Color.Warning"
+                                           StartIcon="@Icons.Material.Filled.Build"
+                                           OnClick="@(() => RepairProjectAsync(project))">
+                                    Repair
+                                </MudButton>
+                            }
                             <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                                            Color="Color.Error"
                                            OnClick="@(() => ConfirmDelete(project))" />
@@ -74,6 +82,7 @@
     private List<AutomationProjectInfo> _projects = [];
     private AutomationProjectInfo? _projectToDelete;
     private bool _showDeleteDialog;
+    private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,7 +107,27 @@
         _showDeleteDialog = false;
         _projectToDelete = null;
 
-        await ProjectStore.DeleteAsync(project);
-        await LoadProjectsAsync();
+        try
+        {
+            await ProjectStore.DeleteAsync(project);
+            await LoadProjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task RepairProjectAsync(AutomationProjectInfo project)
+    {
+        try
+        {
+            await ProjectStore.RepairAsync(project);
+            await LoadProjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unable to repair project: {ex.Message}";
+        }
     }
 }
