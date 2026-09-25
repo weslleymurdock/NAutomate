@@ -70,10 +70,17 @@ public static class WorkflowParameterParser
         {
             return Convert.ChangeType(value, type, CultureInfo.InvariantCulture);
         }
-        catch (InvalidCastException)
+        catch (Exception exception) when (exception is InvalidCastException or FormatException or OverflowException or JsonException)
         {
-            return JsonSerializer.Deserialize(value, type, JsonOptions)
-                ?? throw new InvalidDataException($"Could not parse value for parameter type '{typeName}'.");
+            try
+            {
+                return JsonSerializer.Deserialize(value, type, JsonOptions)
+                    ?? throw new InvalidDataException($"Could not parse value for parameter type '{typeName}'.");
+            }
+            catch (JsonException jsonException)
+            {
+                throw new InvalidDataException($"Could not parse value for parameter type '{typeName}'.", jsonException);
+            }
         }
     }
 
@@ -81,7 +88,10 @@ public static class WorkflowParameterParser
     {
         var normalized = typeName.Trim();
 
-        var type = Type.GetType(normalized, throwOnError: false);
+        var type = Type.GetType(normalized, throwOnError: false)
+            ?? AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType(normalized, throwOnError: false))
+                .FirstOrDefault(static candidate => candidate is not null);
         if (type is not null)
             return type;
 
