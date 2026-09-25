@@ -206,7 +206,7 @@
                             <MudText Typo="Typo.caption">@step.Kind</MudText>
                             @if (!step.IsEntry)
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" Disabled="@HasActiveDebugSession" OnClick="@(() => RemoveStep(step.Id))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" Disabled="@HasActiveDebugSession" OnClick="@(() => RemoveStepAsync(step.Id))" />
                             }
                         </div>
                         <MudText Typo="Typo.subtitle2">@step.Title</MudText>
@@ -404,15 +404,18 @@
         _selected = step;
     }
 
-    private void RemoveStep(string id)
+    private async Task RemoveStepAsync(string id)
     {
         if (id == "entry" || HasActiveDebugSession)
             return;
 
         _steps.RemoveAll(x => x.Id == id);
+        _variables.RemoveAll(x => x.Scope == AutomationVariableScope.Local && x.StepId == id);
 
         if (_selected?.Id == id)
             _selected = null;
+
+        await SynchronizeEnvironmentsAsync();
     }
 
     private void SelectStep(FlowStep step) => _selected = step;
