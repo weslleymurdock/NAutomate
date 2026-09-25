@@ -48,7 +48,7 @@ internal static class PwshShellOperationInvoker
                 throw new InvalidOperationException(
                     $"Operation '{Descriptor.Id}' is metadata-only and cannot be invoked from a workflow.");
 
-            var arguments = BindArguments(method, context.Parameters);
+            var arguments = BindArguments(method, context.Parameters, context.CancellationToken);
             var result = method.Invoke(service, arguments);
 
             if (result is Task task)
@@ -116,7 +116,7 @@ internal static class PwshShellOperationInvoker
             return [.. method.GetParameters().Select(parameter =>
             {
                 if (parameter.ParameterType == typeof(CancellationToken))
-                    return default(CancellationToken);
+                    return cancellationToken;
 
                 if (!parameters.TryGetValue(parameter.Name!, out var raw))
                 {
