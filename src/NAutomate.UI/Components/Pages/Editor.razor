@@ -48,7 +48,7 @@
         </MudStack>
     </MudPaper>
 
-    <div class="automation-editor">
+    <div class="nautomate-editor">
         <aside class="module-sidebar">
             <MudText Typo="Typo.subtitle1" Class="pa-3">Build workflow</MudText>
             <MudText Typo="Typo.caption" Class="px-3 pb-2" Color="Color.Secondary">
@@ -251,7 +251,7 @@
 </MudStack>
 
     <MudDialog @bind-Visible="_showEnvironmentDialog"
-               Options="new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true }">
+               Options="new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true }">
         <DialogContent>
             <MudTabs Rounded="true">
                 <MudTabPanel Text="Environments" Icon="@Icons.Material.Filled.Public">
