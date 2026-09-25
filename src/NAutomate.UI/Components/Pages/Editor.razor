@@ -1,4 +1,5 @@
 @page "/editor"
+@page "/editor/{ProjectId:guid}"
 @using System.Globalization
 @using NAutomate.Abstractions
 @using NAutomate.Core
@@ -6,6 +7,8 @@
 @inject IModuleRegistry ModuleRegistry
 @inject WorkflowEngine WorkflowEngine
 @inject IExecutionEnvironmentService EnvironmentService
+@inject IAutomationProjectStore ProjectStore
+@inject NavigationManager Navigation
 
 <PageTitle>Automation Editor</PageTitle>
 
@@ -20,6 +23,7 @@
         </MudStack>
 
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save" Disabled="@HasActiveDebugSession" OnClick="SaveProjectAsync">Save</MudButton>
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.BugReport" Disabled="@HasActiveDebugSession" OnClick="DebugAsync">Debug</MudButton>
             <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Success" Disabled="@(!CanPlay)" OnClick="Play" />
             <MudIconButton Icon="@Icons.Material.Filled.Pause" Color="Color.Warning" Disabled="@(!CanPause)" OnClick="Pause" />
@@ -107,15 +111,16 @@
                     <MudText Typo="Typo.subtitle2">Entrypoint</MudText>
                 </div>
 
-                <div class="workflow-dropzone workflow-dropzone-root"
+                <div class="workflow-dropzone workflow-dropzone-root workflow-dropzone-between"
                      @ondragover:preventDefault="true"
-                     @ondrop="DropRootAsync">
+                     @ondrop="@(() => DropRootAsync(0))">
                     <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
-                    <MudText Typo="Typo.caption">Drop a step here to add it to the workflow</MudText>
+                    <MudText Typo="Typo.caption">Drop a step here</MudText>
                 </div>
 
-                @foreach (var step in _steps)
+                @for (var index = 0; index < _steps.Count; index++)
                 {
+                    var step = _steps[index];
                     <EditorFlowStepNode Step="step"
                                         ActiveStepId="@_activeStepId"
                                         Disabled="@HasActiveDebugSession"
@@ -123,6 +128,12 @@
                                         OnRemoved="RemoveStepAsync"
                                         OnAddChild="AddChildAsync"
                                         OnDropChild="DropChildAsync" />
+                    <div class="workflow-dropzone workflow-dropzone-root workflow-dropzone-between"
+                         @ondragover:preventDefault="true"
+                         @ondrop="@(() => DropRootAsync(index + 1))">
+                        <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
+                        <MudText Typo="Typo.caption">Drop a step here</MudText>
+                    </div>
                 }
             </div>
         </main>
@@ -374,6 +385,10 @@
     </MudDialog>
 
 @code {
+    [Parameter] public Guid? ProjectId { get; set; }
+
+    private AutomationProjectInfo? _project;
+    private AutomationProjectSettings _settings = new();
     private string _search = string.Empty;
     private string _console = string.Empty;
     private string? _activeStepId;
@@ -441,11 +456,56 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var workflow = BuildWorkflow();
-        _environments = [.. await EnvironmentService.SynchronizeAsync(workflow)];
-        if (_environments.Count == 0)
-            _environments = [await EnvironmentService.CreateAsync("Default", workflow)];
-        _selectedEnvironmentId = _environments[0].Id;
+        try
+        {
+            if (ProjectId is null)
+            {
+                var created = await ProjectStore.CreateAsync("New project");
+                Navigation.NavigateTo($"/editor/{created.Id:D}", replace: true);
+                return;
+            }
+
+            var state = await ProjectStore.LoadAsync(ProjectId.Value, CancellationToken.None);
+            _project = state.Info;
+            _settings = state.Settings;
+
+            _variables.Clear();
+            _variables.AddRange(state.Workflow.Variables ?? []);
+            _steps.Clear();
+            foreach (var step in state.Workflow.Steps)
+                _steps.Add(CreateEditorStep(step));
+
+            _nextSequence = _steps.SelectMany(Flatten).Select(x => x.Sequence).DefaultIfEmpty(0).Max() + 1;
+
+            _environments = state.Environment.Environments
+                .Select(pair => new AutomationEnvironment(
+                    pair.Key,
+                    state.Workflow.Name,
+                    pair.Value.Name,
+                    pair.Value.Values.ToDictionary(
+                        value => value.Key,
+                        value => value.Value.ValueKind == System.Text.Json.JsonValueKind.Null
+                            ? null
+                            : value.Value.ToString(),
+                        StringComparer.Ordinal)))
+                .ToList();
+
+            if (_environments.Count == 0)
+            {
+                var now = DateTimeOffset.UtcNow;
+                _environments.Add(new AutomationEnvironment(
+                    Guid.NewGuid().ToString("N"),
+                    state.Workflow.Name,
+                    "Default",
+                    new Dictionary<string, string?>(StringComparer.Ordinal)));
+            }
+
+            _selectedEnvironmentId = _environments[0].Id;
+        }
+        catch (Exception ex)
+        {
+            _console = $"[ERROR] {ex.Message}\n";
+        }
     }
 
     private void BeginDragIf() => BeginDrag("control:if");
@@ -465,23 +525,18 @@
 
     private void BeginDragModule(string moduleId) => BeginDrag($"module:{moduleId}");
 
-    private Task DropRootAsync()
-    {
-        return InsertDraggedStepAsync(null, false);
-    }
+    private Task DropRootAsync(int index) => InsertDraggedStepAsync(null, false, index);
 
-    private Task DropChildAsync((EditorFlowStep Parent, bool ElseBranch) target)
-    {
-        return InsertDraggedStepAsync(target.Parent, target.ElseBranch);
-    }
+    private Task DropChildAsync((EditorFlowStep Parent, bool ElseBranch, int Index) target) =>
+        InsertDraggedStepAsync(target.Parent, target.ElseBranch, target.Index);
 
     private async Task AddDraggedStep(string payload)
     {
         BeginDrag(payload);
-        await InsertDraggedStepAsync(null, false);
+        await InsertDraggedStepAsync(null, false, _steps.Count);
     }
 
-    private Task InsertDraggedStepAsync(EditorFlowStep? parent, bool elseBranch)
+    private Task InsertDraggedStepAsync(EditorFlowStep? parent, bool elseBranch, int index)
     {
         if (HasActiveDebugSession || string.IsNullOrWhiteSpace(_dragPayload))
             return Task.CompletedTask;
@@ -492,13 +547,150 @@
         if (step is null)
             return Task.CompletedTask;
 
-        if (parent is null)
-            _steps.Add(step);
-        else
-            (elseBranch ? parent.ElseChildren : parent.Children).Add(step);
+        var target = parent is null
+            ? _steps
+            : elseBranch ? parent.ElseChildren : parent.Children;
 
+        index = Math.Clamp(index, 0, target.Count);
+        target.Insert(index, step);
         _selected = step;
         return InvokeAsync(StateHasChanged);
+    }
+
+    private IEnumerable<EditorFlowStep> Flatten(EditorFlowStep step)
+    {
+        yield return step;
+        foreach (var child in step.Children.SelectMany(Flatten))
+            yield return child;
+        foreach (var child in step.ElseChildren.SelectMany(Flatten))
+            yield return child;
+    }
+
+    private EditorFlowStep CreateEditorStep(WorkflowStep step)
+    {
+        EditorFlowStep editor = step switch
+        {
+            ModuleStep moduleStep => CreateLoadedModuleStep(moduleStep),
+            IfStep ifStep => new(step.Id, "If / Else", WorkflowStepKind.If, Icons.Material.Filled.CallSplit, "Conditional branch"),
+            ForStep forStep => new(step.Id, "For loop", WorkflowStepKind.For, Icons.Material.Filled.Repeat, "Numeric range loop"),
+            ForeachStep foreachStep => new(step.Id, "Foreach loop", WorkflowStepKind.Foreach, Icons.Material.Filled.Loop, "Collection loop"),
+            WhileStep whileStep => new(step.Id, "While loop", WorkflowStepKind.While, Icons.Material.Filled.Sync, "Condition-controlled loop"),
+            SetStep setStep => new(step.Id, "Set variable", WorkflowStepKind.Set, Icons.Material.Filled.Edit, "Update a workflow variable"),
+            ExitStep exitStep => new(step.Id, "Exit", WorkflowStepKind.Exit, Icons.Material.Filled.StopCircle, "Terminate workflow execution"),
+            _ => throw new InvalidDataException($"Unsupported workflow step '{step.Id}'.")
+        };
+
+        switch (step)
+        {
+            case IfStep ifStep:
+                editor.Values["conditionVariable"] = ifStep.Condition.Variable;
+                editor.Values["conditionOperator"] = ifStep.Condition.Operator.ToString();
+                editor.Values["conditionValue"] = Convert.ToString(ifStep.Condition.Value, CultureInfo.InvariantCulture);
+                foreach (var child in ifStep.Then)
+                    editor.Children.Add(CreateEditorStep(child));
+                if (ifStep.Else is not null)
+                    foreach (var child in ifStep.Else)
+                        editor.ElseChildren.Add(CreateEditorStep(child));
+                break;
+            case ForStep forStep:
+                editor.Values["variable"] = forStep.Variable;
+                editor.Values["from"] = forStep.From.ToString(CultureInfo.InvariantCulture);
+                editor.Values["to"] = forStep.To.ToString(CultureInfo.InvariantCulture);
+                editor.Values["step"] = forStep.Step.ToString(CultureInfo.InvariantCulture);
+                editor.Values["inclusive"] = forStep.Inclusive.ToString();
+                foreach (var child in forStep.Body)
+                    editor.Children.Add(CreateEditorStep(child));
+                break;
+            case ForeachStep foreachStep:
+                editor.Values["collection"] = foreachStep.Collection;
+                editor.Values["itemVariable"] = foreachStep.ItemVariable;
+                foreach (var child in foreachStep.Body)
+                    editor.Children.Add(CreateEditorStep(child));
+                break;
+            case WhileStep whileStep:
+                editor.Values["conditionVariable"] = whileStep.Condition.Variable;
+                editor.Values["conditionOperator"] = whileStep.Condition.Operator.ToString();
+                editor.Values["conditionValue"] = Convert.ToString(whileStep.Condition.Value, CultureInfo.InvariantCulture);
+                editor.Values["maxIterations"] = (whileStep.MaxIterations ?? 10000).ToString(CultureInfo.InvariantCulture);
+                foreach (var child in whileStep.Body)
+                    editor.Children.Add(CreateEditorStep(child));
+                break;
+            case SetStep setStep:
+                editor.Values["variable"] = setStep.Variable;
+                editor.Values["operation"] = setStep.Operation.ToString();
+                editor.Values["value"] = Convert.ToString(setStep.Value, CultureInfo.InvariantCulture);
+                break;
+            case ExitStep exitStep:
+                editor.Values["exitCode"] = exitStep.ExitCode.ToString(CultureInfo.InvariantCulture);
+                break;
+        }
+
+        return editor;
+    }
+
+    private EditorFlowStep CreateLoadedModuleStep(ModuleStep step)
+    {
+        var module = ModuleRegistry.List().FirstOrDefault(x => x.Id == step.ModuleId);
+        var editor = new EditorFlowStep(
+            step.Id,
+            module?.DisplayName ?? step.ModuleId,
+            WorkflowStepKind.Module,
+            Icons.Material.Filled.Extension,
+            module?.Description ?? "Module step",
+            step.ModuleId,
+            module?.Parameters.Select(x => new AutomationParameterDescriptor(x.Name, x.Type, x.Required, x.Description)).ToList() ?? []);
+
+        foreach (var parameter in step.ModuleParameters)
+            editor.Values[parameter.Key] = Convert.ToString(parameter.Value, CultureInfo.InvariantCulture);
+
+        return editor;
+    }
+
+    private async Task SaveProjectAsync()
+    {
+        if (_project is null || HasActiveDebugSession)
+            return;
+
+        var state = new AutomationProjectState
+        {
+            Info = _project,
+            Workflow = BuildWorkflow(),
+            Settings = _settings,
+            Environment = BuildEnvironmentFile()
+        };
+
+        await ProjectStore.SaveAsync(state);
+        _project = await ProjectStore.GetAsync(_project.Id);
+        _console += $"[PROJECT] Saved: {_project.Name}\n";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private AutomationEnvironmentFile BuildEnvironmentFile()
+    {
+        var result = new AutomationEnvironmentFile();
+        foreach (var environment in _environments)
+        {
+            var definition = new AutomationEnvironmentDefinition
+            {
+                Name = environment.Name
+            };
+
+            foreach (var pair in environment.Values)
+            {
+                var variable = _variables.FirstOrDefault(x => x.Key.Equals(pair.Key, StringComparison.Ordinal));
+                object? value = pair.Value is null
+                    ? null
+                    : variable is null || string.IsNullOrWhiteSpace(variable.Type)
+                        ? pair.Value
+                        : WorkflowParameterParser.Parse(pair.Value, variable.Type);
+
+                definition.Values[pair.Key] = JsonSerializer.SerializeToElement(value, value?.GetType() ?? typeof(string));
+            }
+
+            result.Environments[environment.Id] = definition;
+        }
+
+        return result;
     }
 
     private EditorFlowStep? CreateDraggedStep(string payload)
@@ -790,9 +982,12 @@
         if (string.IsNullOrWhiteSpace(_newEnvironmentName))
             return;
 
-        var workflow = BuildWorkflow();
-        var environment = await EnvironmentService.CreateAsync(_newEnvironmentName, workflow);
-        _environments = [.. await EnvironmentService.ListAsync(workflow)];
+        var environment = new AutomationEnvironment(
+            Guid.NewGuid().ToString("N"),
+            _project?.Name ?? BuildWorkflow().Name,
+            _newEnvironmentName.Trim(),
+            new Dictionary<string, string?>(StringComparer.Ordinal));
+        _environments.Add(environment);
         _selectedEnvironmentId = environment.Id;
         _newEnvironmentName = string.Empty;
         await InvokeAsync(StateHasChanged);
@@ -803,12 +998,14 @@
         if (_selectedEnvironmentId is null)
             return;
 
-        await EnvironmentService.DeleteAsync(_selectedEnvironmentId);
-        var workflow = BuildWorkflow();
-        _environments = [.. await EnvironmentService.ListAsync(workflow)];
+        _environments.RemoveAll(x => x.Id == _selectedEnvironmentId);
 
         if (_environments.Count == 0)
-            _environments = [await EnvironmentService.CreateAsync("Default", workflow)];
+            _environments.Add(new AutomationEnvironment(
+                Guid.NewGuid().ToString("N"),
+                _project?.Name ?? BuildWorkflow().Name,
+                "Default",
+                new Dictionary<string, string?>(StringComparer.Ordinal)));
 
         _selectedEnvironmentId = _environments[0].Id;
         await InvokeAsync(StateHasChanged);
@@ -827,11 +1024,8 @@
             [key] = value
         };
 
-        var saved = await EnvironmentService.SaveAsync(
-            _selectedEnvironment with { Values = values },
-            BuildWorkflow());
-
-        _environments = [.. _environments.Select(x => x.Id == saved.Id ? saved : x)];
+        var updated = _selectedEnvironment with { Values = values };
+        _environments = [.. _environments.Select(x => x.Id == updated.Id ? updated : x)];
         await InvokeAsync(StateHasChanged);
     }
 
@@ -868,10 +1062,17 @@
 
     private async Task SynchronizeEnvironmentsAsync()
     {
-        _environments = [.. await EnvironmentService.SynchronizeAsync(BuildWorkflow())];
+        if (_environments.Count == 0)
+        {
+            _environments.Add(new AutomationEnvironment(
+                Guid.NewGuid().ToString("N"),
+                _project?.Name ?? BuildWorkflow().Name,
+                "Default",
+                new Dictionary<string, string?>(StringComparer.Ordinal)));
+        }
 
         if (_selectedEnvironmentId is not null && !_environments.Any(x => x.Id == _selectedEnvironmentId))
-            _selectedEnvironmentId = _environments.FirstOrDefault()?.Id;
+            _selectedEnvironmentId = _environments[0].Id;
 
         await InvokeAsync(StateHasChanged);
     }
