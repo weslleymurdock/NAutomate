@@ -69,7 +69,12 @@
                                 @if (!project.IsValid)
                                 {
                                     <MudAlert Severity="Severity.Error" Class="mt-3">
-                                        Project is not executable: @string.Join(" ", project.ValidationErrors)
+                                        <MudText Typo="Typo.body2">
+                                            Project is not executable:
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">
+                                            @string.Join(" ", project.ValidationErrors)
+                                        </MudText>
                                     </MudAlert>
                                 }
                                 else
@@ -80,11 +85,35 @@
                                 }
                             </MudCardContent>
                             <MudCardActions>
-                                <MudButton Color="Color.Primary"
-                                           Disabled="@(project.Id == Guid.Empty)"
-                                           OnClick="@(() => OpenProject(project.Id))">
-                                    Open
-                                </MudButton>
+                                @if (project.IsValid)
+                                {
+                                    <MudButton Color="Color.Primary"
+                                               OnClick="@(() => OpenProject(project.Id))">
+                                        Open
+                                    </MudButton>
+                                }
+                                else if (project.Id != Guid.Empty)
+                                {
+                                    <MudButton Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.Build"
+                                               OnClick="@(() => OpenProject(project.Id))">
+                                        Resolve
+                                    </MudButton>
+                                }
+                                else
+                                {
+                                    <MudButton Color="Color.Warning"
+                                               StartIcon="@Icons.Material.Filled.Build"
+                                               OnClick="@(() => RepairProjectAsync(project))">
+                                        Repair
+                                    </MudButton>
+                                }
+
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                               Color="Color.Error"
+                                               Title="Delete project"
+                                               OnClick="@(() => ConfirmDelete(project))" />
                             </MudCardActions>
                         </MudCard>
                     </MudItem>
@@ -116,12 +145,27 @@
     </DialogActions>
 </MudDialog>
 
+<MudDialog @bind-Visible="_showDeleteDialog">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Delete project?</MudText>
+        <MudText Typo="Typo.body2">
+            This permanently deletes <strong>@_projectToDelete?.Name</strong> and all automation artifacts.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showDeleteDialog = false)">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="DeleteProjectAsync">Delete</MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     private List<AutomationProjectInfo> _projects = [];
+    private AutomationProjectInfo? _projectToDelete;
     private string _newProjectName = string.Empty;
     private string? _error;
     private bool _loading = true;
     private bool _showCreateDialog;
+    private bool _showDeleteDialog;
 
     protected override async Task OnInitializedAsync()
     {
@@ -163,4 +207,43 @@
 
     private void OpenProject(Guid projectId) =>
         Navigation.NavigateTo($"/editor/{projectId:D}");
+
+    private void ConfirmDelete(AutomationProjectInfo project)
+    {
+        _projectToDelete = project;
+        _showDeleteDialog = true;
+    }
+
+    private async Task DeleteProjectAsync()
+    {
+        if (_projectToDelete is null)
+            return;
+
+        var project = _projectToDelete;
+        _showDeleteDialog = false;
+        _projectToDelete = null;
+
+        try
+        {
+            await ProjectStore.DeleteAsync(project);
+            await LoadProjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task RepairProjectAsync(AutomationProjectInfo project)
+    {
+        try
+        {
+            await ProjectStore.RepairAsync(project);
+            await LoadProjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Unable to repair project: {ex.Message}";
+        }
+    }
 }
