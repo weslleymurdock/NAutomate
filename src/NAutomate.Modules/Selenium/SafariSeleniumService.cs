@@ -16,7 +16,8 @@ public sealed class SafariSeleniumService : SeleniumServiceBase, ISafariSelenium
         if (headless)
             throw new PlatformNotSupportedException("Safari does not support the generic headless option.");
 
-        options.AddArguments(arguments);
+        if (arguments.Count != 0)
+            throw new NotSupportedException("Safari does not support arbitrary browser command-line arguments through this service.");
 
         if (!string.IsNullOrWhiteSpace(binaryPath))
             throw new NotSupportedException("Safari browser binary paths are managed by SafariDriver and cannot be overridden by SeleniumService.");
