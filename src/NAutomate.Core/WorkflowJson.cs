@@ -72,6 +72,12 @@ public static class WorkflowJson
             string.IsNullOrWhiteSpace(variable.StepId)))
             throw new InvalidDataException("Local workflow variables require a step id.");
 
+        var stepIds = workflow.Steps.Select(step => step.Id).ToHashSet(StringComparer.Ordinal);
+        if (variables.Any(variable =>
+            variable.Scope == AutomationVariableScope.Local &&
+            !stepIds.Contains(variable.StepId!)))
+            throw new InvalidDataException("Local workflow variables must reference an existing workflow step.");
+
         if (variables.Select(variable => variable.Key).Distinct(StringComparer.Ordinal).Count() != variables.Count)
             throw new InvalidDataException("Workflow variable keys must be unique.");
         if (workflow.Steps.Select(step => step.Id).Distinct(StringComparer.Ordinal).Count() != workflow.Steps.Count)
