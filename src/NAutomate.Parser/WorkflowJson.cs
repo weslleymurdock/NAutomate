@@ -163,6 +163,9 @@ public static class WorkflowJson
                         throw new InvalidDataException($"Set step '{setStep.Id}' requires a value for {setStep.Operation}.");
                     break;
 
+                case ExitStep:
+                    break;
+
                 default:
                     throw new InvalidDataException($"Unsupported workflow step type '{step.Kind}'.");
             }
