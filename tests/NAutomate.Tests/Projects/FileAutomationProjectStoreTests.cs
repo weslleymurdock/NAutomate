@@ -57,8 +57,6 @@ public sealed class FileAutomationProjectStoreTests
                 Directory.Delete(root, recursive: true);
         }
     }
-}
-
 
     [Fact]
     public async Task DeleteAsync_removes_project_directory_and_artifacts()
@@ -81,3 +79,5 @@ public sealed class FileAutomationProjectStoreTests
                 Directory.Delete(root, recursive: true);
         }
     }
+
+}
