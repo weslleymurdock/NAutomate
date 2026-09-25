@@ -34,11 +34,23 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         {
             cancellationToken.ThrowIfCancellationRequested();
             var manifestPath = Path.Combine(directory, ProjectFileName);
-            if (!File.Exists(manifestPath))
-                continue;
 
             try
             {
+                if (!File.Exists(manifestPath))
+                {
+                    projects.Add(new AutomationProjectInfo(
+                        Guid.Empty,
+                        Path.GetFileName(directory),
+                        Path.GetFileName(directory),
+                        directory,
+                        DateTimeOffset.MinValue,
+                        DateTimeOffset.MinValue,
+                        false,
+                        [$"Missing required file '{ProjectFileName}'."]));
+                    continue;
+                }
+
                 var manifest = await ReadManifestAsync(manifestPath, cancellationToken);
                 var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken);
                 projects.Add(ToInfo(manifest, directory, validation));
