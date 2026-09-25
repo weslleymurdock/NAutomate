@@ -52,7 +52,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
                 }
 
                 var manifest = await ReadManifestAsync(manifestPath, cancellationToken);
-                var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken);
+                var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
                 projects.Add(ToInfo(manifest, directory, validation));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -97,7 +97,18 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         };
 
         await SaveAsync(state, cancellationToken);
-        return await GetAsync(id, cancellationToken);
+        var validation = await ValidateDirectoryAsync(directory, new AutomationProjectManifest
+        {
+            SchemaVersion = 1,
+            Id = id,
+            Name = name.Trim(),
+            DirectoryName = directoryName,
+            CreatedUtc = now,
+            UpdatedUtc = now,
+            Hashes = new()
+        }, cancellationToken, requireExecutable: true);
+
+        return new AutomationProjectInfo(id, name.Trim(), directoryName, directory, now, now, validation.IsValid, validation.Errors);
     }
 
     public async Task<AutomationProjectInfo> GetAsync(
@@ -106,7 +117,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     {
         var directory = FindProjectDirectory(projectId);
         var manifest = await ReadManifestAsync(Path.Combine(directory, ProjectFileName), cancellationToken);
-        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken);
+        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
         return ToInfo(manifest, directory, validation);
     }
 
@@ -116,7 +127,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     {
         var directory = FindProjectDirectory(projectId);
         var manifest = await ReadManifestAsync(Path.Combine(directory, ProjectFileName), cancellationToken);
-        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken);
+        var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
         if (!validation.IsValid)
             throw new InvalidDataException(
                 $"Project '{manifest.Name}' is not valid: {string.Join(" ", validation.Errors)}");
@@ -208,7 +219,8 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     private async Task<AutomationProjectValidationResult> ValidateDirectoryAsync(
         string directory,
         AutomationProjectManifest manifest,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool requireExecutable)
     {
         var errors = new List<string>();
 
@@ -237,7 +249,9 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         {
             var automationJson = await File.ReadAllTextAsync(Path.Combine(directory, AutomationFileName), cancellationToken);
             var workflow = WorkflowJson.Deserialize(automationJson);
-            WorkflowJson.Validate(workflow);
+            WorkflowJson.Validate(workflow, requireSteps: false);
+            if (requireExecutable && (workflow.Steps is null || workflow.Steps.Count == 0))
+                errors.Add("Workflow must contain at least one step.");
 
             var settingsJson = await File.ReadAllTextAsync(Path.Combine(directory, SettingsFileName), cancellationToken);
             var settings = JsonSerializer.Deserialize<AutomationProjectSettings>(settingsJson, JsonOptions);
@@ -303,6 +317,63 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         }
 
         return new(errors.Count == 0, errors);
+    }
+
+    public async Task<AutomationProjectInfo> RepairAsync(
+        AutomationProjectInfo project,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var directory = Path.GetFullPath(project.DirectoryPath);
+        var root = ProjectsDirectory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (!directory.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The project directory is outside the application projects directory.");
+
+        Directory.CreateDirectory(directory);
+        Directory.CreateDirectory(Path.Combine(directory, ArtifactsDirectoryName));
+
+        var directoryName = Path.GetFileName(directory);
+        var separator = directoryName.IndexOf('-');
+        if (separator <= 0 || !Guid.TryParse(directoryName[..separator], out var id))
+            throw new InvalidDataException("The project directory name does not contain a valid project id.");
+
+        var name = project.Id != Guid.Empty && !string.IsNullOrWhiteSpace(project.Name)
+            ? project.Name
+            : directoryName[(separator + 1)..];
+
+        var automationPath = Path.Combine(directory, AutomationFileName);
+        var workflow = File.Exists(automationPath)
+            ? WorkflowJson.Deserialize(await File.ReadAllTextAsync(automationPath, cancellationToken))
+            : new AutomationWorkflow(WorkflowJson.CurrentSchemaVersion, name, [], []);
+
+        var settingsPath = Path.Combine(directory, SettingsFileName);
+        var settings = File.Exists(settingsPath)
+            ? JsonSerializer.Deserialize<AutomationProjectSettings>(
+                await File.ReadAllTextAsync(settingsPath, cancellationToken), JsonOptions) ?? new()
+            : new();
+
+        var environmentPath = Path.Combine(directory, EnvironmentFileName);
+        var environment = File.Exists(environmentPath)
+            ? JsonSerializer.Deserialize<AutomationEnvironmentFile>(
+                await File.ReadAllTextAsync(environmentPath, cancellationToken), JsonOptions) ?? new()
+            : new();
+
+        var createdUtc = project.CreatedUtc == DateTimeOffset.MinValue
+            ? Directory.GetCreationTimeUtc(directory)
+            : project.CreatedUtc;
+
+        var state = new AutomationProjectState
+        {
+            Info = new AutomationProjectInfo(id, name, directoryName, directory, createdUtc, DateTimeOffset.UtcNow, false, []),
+            Workflow = workflow,
+            Settings = settings,
+            Environment = environment
+        };
+
+        await SaveAsync(state, cancellationToken);
+        return await GetAsync(id, cancellationToken);
     }
 
     private string FindProjectDirectory(Guid projectId)
