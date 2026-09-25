@@ -1,57 +1,71 @@
 @page "/"
 @rendermode InteractiveServer
-@using NAutomate.Abstractions
-@using NAutomate.Core
-@inject FileWorkflowStore Store
-@inject WorkflowEngine Engine
 
-<PageTitle>NAutomate Workflow</PageTitle>
-<MudText Typo="Typo.h4" GutterBottom="true">Create workflow</MudText>
-<MudPaper Class="pa-4">
-    <MudTextField @bind-Value="_name" Label="Project name" Required="true" />
-    <MudTextField @bind-Value="_message" Label="Echo message" Required="true" Class="mt-4" />
-    <MudStack Row="true" Class="mt-4">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Save JSON</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="RunAsync" Disabled="_busy">Run</MudButton>
+<PageTitle>NAutomate</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-6">
+    <MudStack Spacing="5">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <div>
+                <MudText Typo="Typo.h2">NAutomate</MudText>
+                <MudText Typo="Typo.subtitle1" Color="Color.Secondary">
+                    Build, debug and run declarative automation flows.
+                </MudText>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" Href="/editor">
+                Create project
+            </MudButton>
+        </MudStack>
+
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            Authentication is intentionally a stub for this phase. Recent projects are shown locally until the project store is introduced.
+        </MudAlert>
+
+        <MudText Typo="Typo.h5">Recent projects</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudCard Class="project-card">
+                    <MudCardContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Primary">
+                                <MudIcon Icon="@Icons.Material.Filled.Smartphone" />
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.h6">Appium playground</MudText>
+                                <MudText Typo="Typo.caption">Recently opened</MudText>
+                            </div>
+                        </MudStack>
+                        <MudText Class="mt-4">
+                            Mobile automation flow for exercising the Appium module against the future MAUI target.
+                        </MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Color="Color.Primary" Href="/editor">Open</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudCard Class="project-card">
+                    <MudCardContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Secondary">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.h6">Hello World</MudText>
+                                <MudText Typo="Typo.caption">Initial runtime workflow</MudText>
+                            </div>
+                        </MudStack>
+                        <MudText Class="mt-4">
+                            Minimal core.echo automation used to validate the runtime.
+                        </MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Color="Color.Primary" Href="/editor">Open</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
     </MudStack>
-</MudPaper>
-<MudText Typo="Typo.h5" Class="mt-6">Execution console</MudText>
-<MudPaper Class="pa-4 mt-2" Style="min-height:180px; white-space:pre-wrap"><MudText Typo="Typo.body2">@_console</MudText></MudPaper>
-
-@code {
-    private string _name = "Hello World";
-    private string _message = "Hello from NAutomate";
-    private string _console = string.Empty;
-    private bool _busy;
-    private readonly string _workflowPath = Path.Combine(AppContext.BaseDirectory, "automation.json");
-
-    private AutomationWorkflow CreateWorkflow() => new(WorkflowJson.CurrentSchemaVersion, _name, [new WorkflowStep("step-001", "core.echo", new Dictionary<string, object?> { ["message"] = _message })]);
-
-    private async Task SaveAsync()
-    {
-        await Store.SaveAsync(_workflowPath, CreateWorkflow());
-        _console = $"Saved {_workflowPath}";
-    }
-
-    private async Task RunAsync()
-    {
-        _busy = true;
-        _console = string.Empty;
-        try
-        {
-            await Store.SaveAsync(_workflowPath, CreateWorkflow());
-            await Engine.ExecuteAsync(CreateWorkflow(), new UiEventSink(this));
-        }
-        catch (Exception exception) { _console += $"Error: {exception.Message}\n"; }
-        finally { _busy = false; }
-    }
-
-    private sealed class UiEventSink(Home page) : IExecutionEventSink
-    {
-        public ValueTask OnEventAsync(ExecutionEvent item, CancellationToken cancellationToken = default)
-        {
-            page._console += item.Kind switch { "running" => $"[RUNNING] {item.ModuleId}\n", "output" => $"[OUTPUT] {item.Message}\n", "success" => $"[SUCCESS] {item.ModuleId}\n", _ => $"{item.Message}\n" };
-            return ValueTask.CompletedTask;
-        }
-    }
-}
+</MudContainer>
