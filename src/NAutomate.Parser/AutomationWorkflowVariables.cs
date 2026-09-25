@@ -7,7 +7,7 @@ public static class AutomationWorkflowVariables
 {
     public static IReadOnlyDictionary<string, object?> CreateValues(
         AutomationWorkflow workflow,
-        IReadOnlyDictionary<string, string?>? existing = null)
+        IReadOnlyDictionary<string, object?>? existing = null)
     {
         var values = new Dictionary<string, object?>(StringComparer.Ordinal);
 
@@ -15,7 +15,7 @@ public static class AutomationWorkflowVariables
         {
             if (existing is not null && existing.TryGetValue(variable.Key, out var existingValue) && existingValue is not null)
             {
-                values[variable.Key] = WorkflowParameterParser.Parse(existingValue, variable.Type);
+                values[variable.Key] = existingValue is string text ? WorkflowParameterParser.Parse(text, variable.Type) : existingValue;
                 continue;
             }
 
@@ -24,4 +24,13 @@ public static class AutomationWorkflowVariables
 
         return values;
     }
+
+    public static IReadOnlyDictionary<string, string?> ToPersistedValues(
+        IReadOnlyDictionary<string, object?> values) =>
+        values.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value is null
+                ? null
+                : Convert.ToString(pair.Value, System.Globalization.CultureInfo.InvariantCulture),
+            StringComparer.Ordinal);
 }

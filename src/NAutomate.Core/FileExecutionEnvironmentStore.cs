@@ -54,7 +54,7 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
                 Guid.NewGuid().ToString("N"),
                 workflow.Name,
                 name.Trim(),
-                AutomationWorkflowVariables.CreateValues(workflow));
+                AutomationWorkflowVariables.ToPersistedValues(AutomationWorkflowVariables.CreateValues(workflow)));
 
             environments = [.. environments, environment];
             await WriteAsync(environments, cancellationToken);
@@ -85,7 +85,7 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
                 throw new KeyNotFoundException($"Execution environment '{environment.Id}' was not found.");
 
             var values = AutomationWorkflowVariables.CreateValues(workflow, environment.Values);
-            var saved = environment with { Values = values };
+            var saved = environment with { Values = AutomationWorkflowVariables.ToPersistedValues(values) };
             environments[index] = saved;
             await WriteAsync(environments, cancellationToken);
             return saved;
@@ -129,7 +129,7 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
                 .Select(environment => string.Equals(environment.WorkflowName, workflow.Name, StringComparison.Ordinal)
                     ? environment with
                     {
-                        Values = AutomationWorkflowVariables.CreateValues(workflow, environment.Values)
+                        Values = AutomationWorkflowVariables.ToPersistedValues(AutomationWorkflowVariables.CreateValues(workflow, environment.Values.ToDictionary(x => x.Key, x => (object?)x.Value)))
                     }
                     : environment)
                 .ToList();
