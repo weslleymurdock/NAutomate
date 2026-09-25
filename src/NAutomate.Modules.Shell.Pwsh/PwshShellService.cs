@@ -4,7 +4,7 @@ namespace NAutomate.Modules.Shell.Pwsh;
 
 public sealed class PwshShellService : IPwshShellService
 {
-    public async Task<ShellCommandResult> RunAsync(
+    public async Task<ShellCommandResult> Run(
         string run,
         CancellationToken cancellationToken = default)
     {
@@ -50,9 +50,6 @@ public sealed class PwshShellService : IPwshShellService
             standardOutput,
             standardError);
     }
-
-    public ShellCommandResult Run(string run) =>
-        RunAsync(run).GetAwaiter().GetResult();
 
     private static void TryKill(Process process)
     {
