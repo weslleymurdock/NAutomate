@@ -180,11 +180,19 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         await WriteAtomicAsync(Path.Combine(directory, ProjectFileName), projectJson, cancellationToken);
     }
 
-    public Task DeleteAsync(Guid projectId, CancellationToken cancellationToken = default)
+    public Task DeleteAsync(AutomationProjectInfo project, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(project);
         cancellationToken.ThrowIfCancellationRequested();
-        var directory = FindProjectDirectory(projectId);
-        Directory.Delete(directory, recursive: true);
+
+        var directory = Path.GetFullPath(project.DirectoryPath);
+        var root = ProjectsDirectory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (!directory.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The project directory is outside the application projects directory.");
+
+        if (Directory.Exists(directory))
+            Directory.Delete(directory, recursive: true);
+
         return Task.CompletedTask;
     }
 
