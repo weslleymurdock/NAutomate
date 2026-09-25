@@ -36,7 +36,7 @@ public sealed class WorkflowEngine(IModuleRegistry registry)
                     cancellationToken);
 
                 var result = await module.ExecuteAsync(
-                    new(workflow, step, EnvironmentVariableResolver.ResolveParameters(step, environment), cancellationToken));
+                    new(workflow, step, EnvironmentVariableResolver.ResolveParameters(step, environment), cancellationToken, environment));
 
                 await sink.OnEventAsync(
                     new("output", module.Descriptor.Id, result.Output, step.Id),
