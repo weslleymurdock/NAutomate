@@ -91,7 +91,8 @@ public sealed record ModuleExecutionContext(
     AutomationWorkflow Workflow,
     WorkflowStep Step,
     IReadOnlyDictionary<string, object?> Parameters,
-    CancellationToken CancellationToken);
+    CancellationToken CancellationToken,
+    AutomationEnvironment? Environment = null);
 
 public sealed record ModuleExecutionResult(string Output, bool Succeeded = true);
 
