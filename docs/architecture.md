@@ -1,72 +1,44 @@
 # Architecture
 
-## Components
+NAutomate is split into stable contracts, reusable parsing/application services, runtime execution, modules, and presentation hosts.
 
-| Project | Responsibility |
-|---|---|
-| NAutomate.Abstractions | Stable public contracts for modules, service metadata and execution integration |
-| NAutomate.Core | Workflow model, serialization, storage, registry and execution |
-| NAutomate.Modules | Official precompiled automation modules |
-| NAutomate.CLI | Executable runtime host and console protocol |
-| NAutomate | MAUI Blazor Hybrid desktop application |
-| NAutomate.Web | Blazor web application |
+## Projects
+
+- **NAutomate.Abstractions** — public contracts and declarative workflow/environment models. It must remain free of UI, runtime, browser, shell, and persistence dependencies.
+- **NAutomate.Parser** — reusable parsing and normalization layer. It owns workflow JSON serialization/validation, environment-variable placeholder resolution, typed operation-parameter parsing, environment JSON serialization, workflow-variable value synchronization, and module-descriptor string parsing. It is independent of the UI and runtime engine so Web and future MAUI hosts can consume the same behavior.
+- **NAutomate.Core** — runtime execution and persistence/application services. It executes workflows, manages debugger sessions, and persists workflows/environments. It consumes NAutomate.Parser; it does not own workflow/environment parsing.
+- **NAutomate.Modules** — official precompiled automation modules.
+- **NAutomate.Modules.Shell** — shell module implementations.
+- **NAutomate.CLI** — command-line composition and execution host.
+- **NAutomate.Web** — Blazor/MudBlazor presentation host. It owns presentation state and rendering only.
+- **NAutomate** — future MAUI presentation host. It can consume the same Parser/Core contracts without duplicating parsing rules.
 
 ## Dependency direction
 
 ```text
-NAutomate.Abstractions
-        ↑
-        ├── NAutomate.Core
-        └── NAutomate.Modules
-                         ↑
-                    NAutomate.CLI
+NAutomate.Modules ───────────────┐
+NAutomate.Modules.Shell ─────────┤
+                                 ▼
+                         NAutomate.Abstractions
+                                 ▲
+                                 │
+                         NAutomate.Parser
+                                 ▲
+                                 │
+                         NAutomate.Core
+                           ▲           ▲
+                           │           │
+                     NAutomate.CLI   NAutomate.Web
+                           │
+                     NAutomate (MAUI)
 ```
 
-Core does not reference official module implementations.
+The important boundary is that presentation projects do not parse workflow formats, operation values, variable placeholders, or persisted environments. They collect user input and call reusable application/parser services.
 
-## Runtime flow
+## Environment lifecycle
 
-```text
-Workflow JSON
-   -> NAutomate.Core
-   -> module registry
-   -> precompiled module operation
-   -> service
-   -> external automation runtime
-```
+IExecutionEnvironmentService is the application-facing contract for listing, creating, saving, deleting, and synchronizing environments. Its implementation lives in Core.
 
-## Stateful module boundary
+IExecutionEnvironmentStore remains the persistence abstraction. FileExecutionEnvironmentStore persists data but delegates JSON serialization/deserialization to NAutomate.Parser.
 
-Automation drivers and sessions are runtime resources. They must never be serialized into workflow JSON.
-
-For Appium:
-
-```text
-Workflow step parameters
-        ↓
-ModuleExecutionContext.Parameters
-        ↓
-Appium operation binder
-        ↓
-IAndroidAppiumService / IIOSAppiumService
-        ↓
-AndroidDriver / IOSDriver
-        ↓
-Appium server / device
-```
-
-The service owns the driver and any runtime-only element resources.
-
-## Service metadata
-
-Module services and operations use annotations so a future Web/MAUI designer can discover:
-
-- service identity and description;
-- operation identity and description;
-- method parameter names/types/descriptions.
-
-The metadata layer is UI-agnostic and does not introduce MudBlazor, Blazor or MAUI dependencies into Core.
-
-## Boundary rule
-
-The workflow describes what to run. It never contains the implementation or runtime objects being run.
+This keeps environment persistence independent from Blazor and allows MAUI to use the same lifecycle service later.
