@@ -140,6 +140,9 @@
 .workflow-exit { border-left-color: var(--mud-palette-error); }
 
 .palette-drag {
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
     cursor: grab;
     border-radius: 8px;
 }
