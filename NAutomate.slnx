@@ -5,6 +5,7 @@
     <Project Path="src/NAutomate.Core/NAutomate.Core.csproj" />
     <Project Path="src/NAutomate.Modules/NAutomate.Modules.csproj" />
     <Project Path="src/NAutomate.Modules.Shell/NAutomate.Modules.Shell.csproj" />
+    <Project Path="src/NAutomate.Parser/NAutomate.Parser.csproj" />
     <Project Path="src/NAutomate.Web/NAutomate.Web.csproj" />
     <Project Path="src/NAutomate/NAutomate.csproj" />
   </Folder>
