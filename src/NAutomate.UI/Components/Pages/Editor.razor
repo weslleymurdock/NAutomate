@@ -1088,6 +1088,13 @@
 
         try
         {
+            await SaveProjectAsync();
+
+            var validation = await ProjectStore.ValidateAsync(_project!.Id);
+            if (!validation.IsValid)
+                throw new InvalidDataException(
+                    $"Project is not executable: {string.Join(" ", validation.Errors)}");
+
             var workflow = BuildWorkflow();
             WorkflowJson.Validate(workflow);
 
