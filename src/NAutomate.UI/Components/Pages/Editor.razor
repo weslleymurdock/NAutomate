@@ -58,22 +58,22 @@
             <MudStack Spacing="1" Class="pa-2">
                 <MudText Typo="Typo.caption">Control flow</MudText>
                                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragIf">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.CallSplit" Disabled="@HasActiveDebugSession" OnClick="@(() => AddIf)">IF / ELSE</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.CallSplit" Disabled="@HasActiveDebugSession" OnClick="AddIf">IF / ELSE</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragFor">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Repeat" Disabled="@HasActiveDebugSession" OnClick="@(() => AddFor)">FOR</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Repeat" Disabled="@HasActiveDebugSession" OnClick="AddFor">FOR</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragForeach">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Loop" Disabled="@HasActiveDebugSession" OnClick="@(() => AddForeach)">FOREACH</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Loop" Disabled="@HasActiveDebugSession" OnClick="AddForeach">FOREACH</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragWhile">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Sync" Disabled="@HasActiveDebugSession" OnClick="@(() => AddWhile)">WHILE</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Sync" Disabled="@HasActiveDebugSession" OnClick="AddWhile">WHILE</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragSet">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Edit" Disabled="@HasActiveDebugSession" OnClick="@(() => AddSet)">SET VARIABLE</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Edit" Disabled="@HasActiveDebugSession" OnClick="AddSet">SET VARIABLE</MudButton>
                 </div>
                 <div class="palette-drag" draggable="true" @ondragstart="BeginDragExit">
-                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.StopCircle" Disabled="@HasActiveDebugSession" OnClick="@(() => AddExit)">EXIT</MudButton>
+                    <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.StopCircle" Disabled="@HasActiveDebugSession" OnClick="AddExit">EXIT</MudButton>
                 </div>
 
             </MudStack>
