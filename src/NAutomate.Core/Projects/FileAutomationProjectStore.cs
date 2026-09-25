@@ -202,7 +202,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     {
         var directory = FindProjectDirectory(projectId);
         var manifest = await ReadManifestAsync(Path.Combine(directory, ProjectFileName), cancellationToken);
-        return await ValidateDirectoryAsync(directory, manifest, cancellationToken);
+        return await ValidateDirectoryAsync(directory, manifest, cancellationToken, requireExecutable: true);
     }
 
     private async Task<AutomationProjectValidationResult> ValidateDirectoryAsync(
