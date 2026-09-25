@@ -7,7 +7,8 @@ public enum WorkflowStepKind
     For,
     Foreach,
     While,
-    Set
+    Set,
+    Exit
 }
 
 public enum WorkflowConditionOperator
@@ -191,6 +192,12 @@ public sealed record SetStep(
     object? Value = null,
     WorkflowSetOperation Operation = WorkflowSetOperation.Set)
     : WorkflowStep(Id, WorkflowStepKind.Set, null, null);
+
+/// <summary>Terminates the current workflow execution with an explicit exit code.</summary>
+public sealed record ExitStep(
+    string Id,
+    int ExitCode = 0)
+    : WorkflowStep(Id, WorkflowStepKind.Exit, null, null);
 
 /// <summary>A typed comparison against a workflow variable.</summary>
 public sealed record WorkflowCondition(
