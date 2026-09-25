@@ -5,6 +5,7 @@ using NAutomate.Core;
 using NAutomate.Modules;
 using NAutomate.Modules.Appium;
 using NAutomate.UI;
+using NAutomate.Abstractions.Projects;
 using NAutomate.Core.Projects;
 using Microsoft.Maui.Storage;
 
@@ -23,7 +24,7 @@ public static class MauiProgram
 			});
 		builder.Services.AddMudServices(configuration =>
 		{
-			configuration.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopRight;
+			configuration.SnackbarConfiguration.PositionClass = MudBlazor.Defaults.Classes.Position.TopRight;
 		});
 		builder.Services.AddMauiBlazorWebView();
 
