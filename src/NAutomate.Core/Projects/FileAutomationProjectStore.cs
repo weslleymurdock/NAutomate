@@ -180,6 +180,14 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         await WriteAtomicAsync(Path.Combine(directory, ProjectFileName), projectJson, cancellationToken);
     }
 
+    public Task DeleteAsync(Guid projectId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var directory = FindProjectDirectory(projectId);
+        Directory.Delete(directory, recursive: true);
+        return Task.CompletedTask;
+    }
+
     public async Task<AutomationProjectValidationResult> ValidateAsync(
         Guid projectId,
         CancellationToken cancellationToken = default)
