@@ -19,6 +19,13 @@ public static class ModuleDescriptorParser
         return separator > 0 ? moduleId[..separator] : moduleId;
     }
 
+    public static string GetModuleId(string moduleDisplay)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(moduleDisplay);
+        var separator = moduleDisplay.IndexOf(" · ", StringComparison.Ordinal);
+        return separator >= 0 ? moduleDisplay[..separator] : moduleDisplay;
+    }
+
     public static string GetServiceGroupId(ModuleDescriptor module)
     {
         ArgumentNullException.ThrowIfNull(module);
