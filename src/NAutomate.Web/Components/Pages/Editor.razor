@@ -1,7 +1,10 @@
 @page "/editor"
 @rendermode InteractiveServer
+@implements IAsyncDisposable
 @using NAutomate.Abstractions
+@using NAutomate.Core
 @inject IModuleRegistry ModuleRegistry
+@inject WorkflowEngine WorkflowEngine
 @inject IJSRuntime JS
 
 <PageTitle>Automation Editor</PageTitle>
@@ -14,12 +17,60 @@
                 <MudText Typo="Typo.caption" Color="Color.Secondary">@_steps.Count steps · Entry point cannot be removed</MudText>
             </div>
         </MudStack>
-        <MudStack Row="true" Spacing="1">
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.BugReport">Debug</MudButton>
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudTooltip Text="Initialize the debugger and pause before the first step">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.BugReport"
+                           Disabled="@HasActiveDebugSession"
+                           OnClick="DebugAsync">
+                    Debug
+                </MudButton>
+            </MudTooltip>
+
+            <MudDivider Vertical="true" Class="mx-1" />
+
+            <MudTooltip Text="Run continuously">
+                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow"
+                               Color="Color.Success"
+                               Disabled="@(!CanPlay)"
+                               OnClick="Play" />
+            </MudTooltip>
+            <MudTooltip Text="Pause before the next step">
+                <MudIconButton Icon="@Icons.Material.Filled.Pause"
+                               Color="Color.Warning"
+                               Disabled="@(!CanPause)"
+                               OnClick="Pause" />
+            </MudTooltip>
+            <MudTooltip Text="Stop execution">
+                <MudIconButton Icon="@Icons.Material.Filled.Stop"
+                               Color="Color.Error"
+                               Disabled="@(!CanStop)"
+                               OnClick="StopAsync" />
+            </MudTooltip>
+            <MudTooltip Text="Execute the next step and pause">
+                <MudIconButton Icon="@Icons.Material.Filled.SkipNext"
+                               Disabled="@(!CanStep)"
+                               OnClick="StepInto" />
+            </MudTooltip>
+            <MudTooltip Text="Step over the next operation">
+                <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight"
+                               Disabled="@(!CanStep)"
+                               OnClick="StepOver" />
+            </MudTooltip>
+
+            <MudChip T="string" Size="Size.Small" Color="@DebugStatusColor">@DebugStatus</MudChip>
+
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
             <MudIconButton Icon="@Icons.Material.Filled.Settings" Href="/settings" />
         </MudStack>
     </MudStack>
+
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Debugger controls execute the workflow from the immutable entry point. Play runs continuously; Step Into and Step Over execute one operation and pause.
+        </MudText>
+    </MudPaper>
 
     <div class="automation-editor">
         <aside class="module-sidebar">
@@ -30,7 +81,7 @@
                 <MudExpansionPanel Text="@module.DisplayName" Icon="@ModuleIcon(module.Id)" Dense="true">
                     @foreach (var service in module.Services ?? [])
                     {
-                        <MudExpansionPanel Text="@service.DisplayName" Icon="@Icons.Material.Filled.Smartphone" Dense="true">
+                        <MudExpansionPanel Text="@service.DisplayName" Icon="@Icons.Material.Filled.Terminal" Dense="true">
                             @foreach (var operation in service.Operations.Where(OperationMatches))
                             {
                                 <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@MethodIcon(operation.ReturnType)" OnClick="@(() => AddStep(module, service, operation))">
@@ -52,19 +103,32 @@
             <div class="diagram-viewport">
                 <div class="diagram-grid"></div>
                 <svg class="diagram-links" aria-hidden="true">
-                    @for (var i = 0; i < _steps.Count - 1; i++) { <line class="flow-link" data-from="@_steps[i].Id" data-to="@_steps[i + 1].Id" /> }
+                    @for (var i = 0; i < _steps.Count - 1; i++)
+                    {
+                        <line class="flow-link" data-from="@_steps[i].Id" data-to="@_steps[i + 1].Id" />
+                    }
                     <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" /></marker></defs>
                 </svg>
                 @foreach (var step in _steps)
                 {
-                    <div id="node-@step.Id" class="flow-node @(step.IsEntry ? "entry-node" : "")" style="left:@(step.X)px;top:@(step.Y)px" @onclick="@(() => SelectStep(step))">
+                    <div id="node-@step.Id"
+                         class="flow-node @(step.IsEntry ? "entry-node" : "") @(step.Id == _activeStepId ? "active-node" : "")"
+                         style="left:@(step.X)px;top:@(step.Y)px"
+                         @onclick="@(() => SelectStep(step))">
                         <div class="node-toolbar">
-                            <MudIcon Icon="@step.Icon" Size="Size.Small" /><MudText Typo="Typo.caption">@step.Kind</MudText>
-                            @if (!step.IsEntry) { <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveStep(step.Id))" /> }
+                            <MudIcon Icon="@step.Icon" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">@step.Kind</MudText>
+                            @if (!step.IsEntry)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" Disabled="@HasActiveDebugSession" OnClick="@(() => RemoveStep(step.Id))" />
+                            }
                         </div>
                         <MudText Typo="Typo.subtitle2">@step.Title</MudText>
                         <MudText Typo="Typo.caption" Class="node-module">@step.Module</MudText>
-                        @if (!step.IsEntry) { <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Tune" OnClick="@(() => SelectStep(step))">Parameters</MudButton> }
+                        @if (!step.IsEntry)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Tune" OnClick="@(() => SelectStep(step))">Parameters</MudButton>
+                        }
                     </div>
                 }
             </div>
@@ -73,28 +137,101 @@
         <aside class="step-inspector">
             @if (_selected is null)
             {
-                <MudStack Class="pa-4" Spacing="2"><MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Large" Color="Color.Primary" /><MudText Typo="Typo.h6">Step inspector</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Select a step to fill method arguments.</MudText></MudStack>
+                <MudStack Class="pa-4" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Large" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6">Step inspector</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Select a step to fill method arguments.</MudText>
+                </MudStack>
             }
             else
             {
                 <MudStack Class="pa-4" Spacing="2">
-                    <MudText Typo="Typo.h6">@_selected.Title</MudText><MudText Typo="Typo.caption" Color="Color.Secondary">@_selected.Description</MudText><MudDivider />
+                    <MudText Typo="Typo.h6">@_selected.Title</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@_selected.Description</MudText>
+                    <MudDivider />
                     @foreach (var parameter in _selected.Parameters)
                     {
-                        <MudTextField Value="@GetParameter(_selected, parameter.Name)" ValueChanged="@((string? value) => SetParameter(_selected, parameter.Name, value))" Label="@parameter.Name" HelperText="@parameter.Description" Variant="Variant.Outlined" />
+                        <MudTextField Value="@GetParameter(_selected, parameter.Name)"
+                                      ValueChanged="@((string? value) => SetParameter(_selected, parameter.Name, value))"
+                                      Label="@parameter.Name"
+                                      HelperText="@parameter.Description"
+                                      Variant="Variant.Outlined"
+                                      Disabled="@HasActiveDebugSession" />
                     }
                 </MudStack>
             }
         </aside>
     </div>
+
+    <MudPaper Class="execution-console" Elevation="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="px-3 py-2">
+            <MudIcon Icon="@Icons.Material.Filled.Terminal" />
+            <MudText Typo="Typo.subtitle2">Execution console</MudText>
+            <MudSpacer />
+            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ClearConsole">Clear</MudButton>
+        </MudStack>
+        <MudDivider />
+        <pre class="execution-output">@_console</pre>
+    </MudPaper>
 </MudStack>
 
 @code {
     private string _search = string.Empty;
+    private string _console = string.Empty;
+    private string? _activeStepId;
     private FlowStep? _selected;
-    private readonly List<FlowStep> _steps = [new("entry", "Entrypoint", "workflow.entry", Icons.Material.Filled.PlayArrow, "Entry point", true, 80, 50, "Immutable workflow entry point.", [])];
+    private WorkflowExecutionSession? _debugSession;
+    private Task<WorkflowExecutionResult>? _debugTask;
 
-    private IEnumerable<ModuleDescriptor> Modules => ModuleRegistry.List().Where(x => x.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Id.Contains(_search, StringComparison.OrdinalIgnoreCase));
+    private readonly List<FlowStep> _steps =
+    [
+        new("entry", "Entrypoint", "workflow.entry", Icons.Material.Filled.PlayArrow, "Entry point", true, 80, 50, "Immutable workflow entry point.", [])
+    ];
+
+    private IEnumerable<ModuleDescriptor> Modules =>
+        ModuleRegistry.List().Where(x =>
+            x.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            x.Id.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private bool HasActiveDebugSession =>
+        _debugSession is not null &&
+        _debugSession.State is not ExecutionControlState.Completed and not ExecutionControlState.Stopped;
+
+    private bool CanPlay =>
+        _debugSession is null ||
+        _debugSession.State is ExecutionControlState.Paused;
+
+    private bool CanPause =>
+        _debugSession?.State is ExecutionControlState.Running or ExecutionControlState.StepInto or ExecutionControlState.StepOver;
+
+    private bool CanStep =>
+        HasActiveDebugSession &&
+        _debugSession!.State is ExecutionControlState.Paused;
+
+    private bool CanStop =>
+        HasActiveDebugSession;
+
+    private string DebugStatus =>
+        _debugSession?.State switch
+        {
+            ExecutionControlState.Running => "Running",
+            ExecutionControlState.StepInto => "Stepping",
+            ExecutionControlState.StepOver => "Stepping",
+            ExecutionControlState.Paused => "Paused",
+            ExecutionControlState.Completed => "Completed",
+            ExecutionControlState.Stopped => "Stopped",
+            _ => "Ready"
+        };
+
+    private Color DebugStatusColor =>
+        _debugSession?.State switch
+        {
+            ExecutionControlState.Running or ExecutionControlState.StepInto or ExecutionControlState.StepOver => Color.Success,
+            ExecutionControlState.Paused => Color.Warning,
+            ExecutionControlState.Completed => Color.Info,
+            ExecutionControlState.Stopped => Color.Error,
+            _ => Color.Default
+        };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -102,39 +239,274 @@
         await JS.InvokeVoidAsync("nautomateFlow.updateLinks");
     }
 
-    private bool OperationMatches(AutomationOperationDescriptor operation) => string.IsNullOrWhiteSpace(_search) || operation.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) || operation.Id.Contains(_search, StringComparison.OrdinalIgnoreCase);
-    private static string ModuleIcon(string id) => id.StartsWith("appium", StringComparison.OrdinalIgnoreCase) ? Icons.Material.Filled.Smartphone : Icons.Material.Filled.Extension;
-    private static string MethodIcon(string returnType) => returnType.Equals("System.Void", StringComparison.OrdinalIgnoreCase) ? Icons.Material.Filled.PlayCircle : Icons.Material.Filled.Output;
+    private bool OperationMatches(AutomationOperationDescriptor operation) =>
+        string.IsNullOrWhiteSpace(_search) ||
+        operation.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+        operation.Id.Contains(_search, StringComparison.OrdinalIgnoreCase);
+
+    private static string ModuleIcon(string id) =>
+        id.StartsWith("appium", StringComparison.OrdinalIgnoreCase)
+            ? Icons.Material.Filled.Smartphone
+            : id.StartsWith("shell", StringComparison.OrdinalIgnoreCase)
+                ? Icons.Material.Filled.Terminal
+                : Icons.Material.Filled.Extension;
+
+    private static string MethodIcon(string returnType) =>
+        returnType.Equals("System.Void", StringComparison.OrdinalIgnoreCase)
+            ? Icons.Material.Filled.PlayCircle
+            : Icons.Material.Filled.Output;
 
     private void AddStep(ModuleDescriptor module, AutomationServiceDescriptor service, AutomationOperationDescriptor operation)
     {
-        var step = new FlowStep(Guid.NewGuid().ToString("N"), operation.DisplayName, $"{module.Id} · {service.DisplayName}", MethodIcon(operation.ReturnType), operation.Id, false, 80, 190 + (_steps.Count - 1) * 145, operation.Description, operation.Parameters.ToList());
-        _steps.Add(step); _selected = step;
+        if (HasActiveDebugSession)
+            return;
+
+        var step = new FlowStep(
+            Guid.NewGuid().ToString("N"),
+            operation.DisplayName,
+            $"{module.Id} · {service.DisplayName}",
+            MethodIcon(operation.ReturnType),
+            operation.Id,
+            false,
+            80,
+            190 + (_steps.Count - 1) * 145,
+            operation.Description,
+            operation.Parameters.ToList());
+
+        _steps.Add(step);
+        _selected = step;
     }
 
     private void RemoveStep(string id)
     {
-        if (id == "entry") return;
+        if (id == "entry" || HasActiveDebugSession)
+            return;
+
         _steps.RemoveAll(x => x.Id == id);
-        if (_selected?.Id == id) _selected = null;
+
+        if (_selected?.Id == id)
+            _selected = null;
     }
 
     private void SelectStep(FlowStep step) => _selected = step;
-    private string? GetParameter(FlowStep step, string name) => step.Values.TryGetValue(name, out var value) ? value : null;
-    private void SetParameter(FlowStep step, string name, string? value) => step.Values[name] = value;
+
+    private string? GetParameter(FlowStep step, string name) =>
+        step.Values.TryGetValue(name, out var value) ? value : null;
+
+    private void SetParameter(FlowStep step, string name, string? value) =>
+        step.Values[name] = value;
+
+    private AutomationWorkflow BuildWorkflow()
+    {
+        var steps = _steps
+            .Where(step => !step.IsEntry)
+            .Select(step => new WorkflowStep(
+                step.Id,
+                $"{step.ModuleId}.{step.OperationId}",
+                new Dictionary<string, object?>(step.Values, StringComparer.Ordinal)))
+            .ToArray();
+
+        return new AutomationWorkflow(
+            WorkflowJson.CurrentSchemaVersion,
+            "Editor automation",
+            steps);
+    }
+
+    private async Task DebugAsync()
+    {
+        if (HasActiveDebugSession)
+            return;
+
+        if (_steps.Count == 1)
+        {
+            AppendConsole("[DEBUG] Add at least one operation after the entry point.\n");
+            return;
+        }
+
+        await StopExistingSessionAsync();
+
+        try
+        {
+            var workflow = BuildWorkflow();
+            WorkflowJson.Validate(workflow);
+
+            _console = string.Empty;
+            _activeStepId = null;
+
+            var sink = new UiEventSink(this);
+            _debugSession = new WorkflowExecutionSession(WorkflowEngine, workflow, sink);
+            _debugTask = _debugSession.RunAsync();
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            AppendConsole($"[ERROR] {ex.Message}\n");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task EnsureDebugSessionAsync()
+    {
+        if (!HasActiveDebugSession)
+            await DebugAsync();
+    }
+
+    private async Task Play()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.Play();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StepInto()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.StepInto();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StepOver()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.StepOver();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Pause()
+    {
+        _debugSession?.Pause();
+        StateHasChanged();
+    }
+
+    private async Task StopAsync()
+    {
+        _debugSession?.Stop();
+
+        if (_debugTask is not null)
+        {
+            try
+            {
+                await _debugTask;
+            }
+            catch
+            {
+                // The session converts execution failures into WorkflowExecutionResult.
+            }
+        }
+
+        _debugSession = null;
+        _debugTask = null;
+        _activeStepId = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StopExistingSessionAsync()
+    {
+        if (_debugSession is null)
+            return;
+
+        await StopAsync();
+    }
+
+    private void ClearConsole()
+    {
+        _console = string.Empty;
+        StateHasChanged();
+    }
+
+    private void AppendConsole(string text)
+    {
+        _console += text;
+    }
 
     private async Task ResetLayout()
     {
-        for (var i = 0; i < _steps.Count; i++) { _steps[i].X = 80; _steps[i].Y = 50 + i * 145; }
+        if (HasActiveDebugSession)
+            return;
+
+        for (var i = 0; i < _steps.Count; i++)
+        {
+            _steps[i].X = 80;
+            _steps[i].Y = 50 + i * 145;
+        }
+
         await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_debugSession is not null)
+            await _debugSession.DisposeAsync();
+    }
+
+    private sealed class UiEventSink(Editor page) : IExecutionEventSink
+    {
+        public async ValueTask OnEventAsync(ExecutionEvent item, CancellationToken cancellationToken = default)
+        {
+            await page.InvokeAsync(() =>
+            {
+                if (!string.IsNullOrWhiteSpace(item.StepId))
+                    page._activeStepId = item.StepId;
+
+                page._console += item.Kind switch
+                {
+                    "workflow" => $"[WORKFLOW] {item.Message}\n",
+                    "running" => $"[RUNNING] {item.StepId}: {item.ModuleId}\n",
+                    "output" => $"[OUTPUT] {item.Message}\n",
+                    "success" => $"[SUCCESS] {item.StepId}\n",
+                    "failure" => $"[FAILURE] {item.StepId}: {item.Message}\n",
+                    "completed" => $"[COMPLETED] {item.Message}\n",
+                    "cancelled" => $"[CANCELLED] {item.Message}\n",
+                    "exception" => $"[EXCEPTION] {item.Message}\n",
+                    _ => $"{item.Message}\n"
+                };
+
+                page.StateHasChanged();
+            });
+        }
     }
 
     private sealed class FlowStep
     {
-        public FlowStep(string id, string title, string module, string icon, string kind, bool isEntry, double x, double y, string description, List<AutomationParameterDescriptor> parameters)
-        { Id=id; Title=title; Module=module; Icon=icon; Kind=kind; IsEntry=isEntry; X=x; Y=y; Description=description; Parameters=parameters; }
-        public string Id { get; } public string Title { get; } public string Module { get; } public string Icon { get; } public string Kind { get; } public bool IsEntry { get; }
-        public double X { get; set; } public double Y { get; set; } public string Description { get; } public List<AutomationParameterDescriptor> Parameters { get; }
+        public FlowStep(
+            string id,
+            string title,
+            string module,
+            string icon,
+            string kind,
+            bool isEntry,
+            double x,
+            double y,
+            string description,
+            List<AutomationParameterDescriptor> parameters)
+        {
+            Id = id;
+            Title = title;
+            Module = module;
+            ModuleId = module.Split(" · ", StringSplitOptions.None)[0];
+            OperationId = kind;
+            Icon = icon;
+            Kind = kind;
+            IsEntry = isEntry;
+            X = x;
+            Y = y;
+            Description = description;
+            Parameters = parameters;
+        }
+
+        public string Id { get; }
+        public string Title { get; }
+        public string Module { get; }
+        public string ModuleId { get; }
+        public string OperationId { get; }
+        public string Icon { get; }
+        public string Kind { get; }
+        public bool IsEntry { get; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public string Description { get; }
+        public List<AutomationParameterDescriptor> Parameters { get; }
         public Dictionary<string, string?> Values { get; } = new(StringComparer.Ordinal);
     }
 }
