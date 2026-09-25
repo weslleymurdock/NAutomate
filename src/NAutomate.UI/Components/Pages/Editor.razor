@@ -587,10 +587,7 @@
             return;
 
         var step = CreateModuleStep(module);
-        if (_selected?.IsContainer == true)
-            _selected.Children.Add(step);
-        else
-            _steps.Add(step);
+        _steps.Add(step);
         _selected = step;
         StateHasChanged();
     }
@@ -624,10 +621,7 @@
 
     private void AddTopLevel(EditorFlowStep step)
     {
-        if (_selected?.IsContainer == true)
-            _selected.Children.Add(step);
-        else
-            _steps.Add(step);
+        _steps.Add(step);
         _selected = step;
         StateHasChanged();
     }
