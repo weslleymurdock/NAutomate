@@ -1,5 +1,8 @@
 @page "/"
 
+@inject IAutomationProjectStore ProjectStore
+@inject NavigationManager Navigation
+
 <PageTitle>NAutomate</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="pa-6">
@@ -11,60 +14,154 @@
                     Build, debug and run declarative automation flows.
                 </MudText>
             </div>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add" Href="/editor">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => _showCreateDialog = true)">
                 Create project
             </MudButton>
         </MudStack>
 
-        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-            Authentication is intentionally a stub for this phase. Recent projects are shown locally until the project store is introduced.
-        </MudAlert>
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+        }
 
-        <MudText Typo="Typo.h5">Recent projects</MudText>
-        <MudGrid>
-            <MudItem xs="12" md="6">
-                <MudCard Class="project-card">
-                    <MudCardContent>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Color="Color.Primary">
-                                <MudIcon Icon="@Icons.Material.Filled.Smartphone" />
-                            </MudAvatar>
-                            <div>
-                                <MudText Typo="Typo.h6">Appium playground</MudText>
-                                <MudText Typo="Typo.caption">Recently opened</MudText>
-                            </div>
-                        </MudStack>
-                        <MudText Class="mt-4">
-                            Mobile automation flow for exercising the Appium module against the future MAUI target.
-                        </MudText>
-                    </MudCardContent>
-                    <MudCardActions>
-                        <MudButton Color="Color.Primary" Href="/editor">Open</MudButton>
-                    </MudCardActions>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudCard Class="project-card">
-                    <MudCardContent>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Color="Color.Secondary">
-                                <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
-                            </MudAvatar>
-                            <div>
-                                <MudText Typo="Typo.h6">Hello World</MudText>
-                                <MudText Typo="Typo.caption">Initial runtime workflow</MudText>
-                            </div>
-                        </MudStack>
-                        <MudText Class="mt-4">
-                            Minimal core.echo automation used to validate the runtime.
-                        </MudText>
-                    </MudCardContent>
-                    <MudCardActions>
-                        <MudButton Color="Color.Primary" Href="/editor">Open</MudButton>
-                    </MudCardActions>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText Typo="Typo.h5">Projects</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@_projects.Count project(s)</MudText>
+        </MudStack>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_projects.Count == 0)
+        {
+            <MudPaper Class="pa-6" Outlined="true">
+                <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Large" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6">No projects yet</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Create a project to generate its automation.json, settings.json, env.json and project.json files.
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        }
+        else
+        {
+            <MudGrid>
+                @foreach (var project in _projects)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudCard Class="project-card">
+                            <MudCardContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudAvatar Color="@(project.IsValid ? Color.Primary : Color.Error)">
+                                        <MudIcon Icon="@(project.IsValid ? Icons.Material.Filled.AccountTree : Icons.Material.Filled.Warning)" />
+                                    </MudAvatar>
+                                    <div>
+                                        <MudText Typo="Typo.h6">@project.Name</MudText>
+                                        <MudText Typo="Typo.caption">@project.DirectoryName</MudText>
+                                    </div>
+                                </MudStack>
+
+                                @if (!project.IsValid)
+                                {
+                                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">
+                                        Project is not executable: @string.Join(" ", project.ValidationErrors)
+                                    </MudAlert>
+                                }
+                                else
+                                {
+                                    <MudText Class="mt-4" Color="Color.Secondary">
+                                        Last saved @project.UpdatedUtc.ToLocalTime().ToString("g")
+                                    </MudText>
+                                }
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudButton Color="Color.Primary"
+                                           Disabled="@(project.Id == Guid.Empty)"
+                                           OnClick="@(() => OpenProject(project.Id))">
+                                    Open
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
     </MudStack>
 </MudContainer>
+
+<MudDialog @bind-Visible="_showCreateDialog">
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Create project</MudText>
+            <MudTextField T="string"
+                          Label="Project name"
+                          Value="@_newProjectName"
+                          ValueChanged="value => _newProjectName = value"
+                          Variant="Variant.Outlined"
+                          AutoFocus="true" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showCreateDialog = false)">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@string.IsNullOrWhiteSpace(_newProjectName)"
+                   OnClick="CreateProjectAsync">
+            Create
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<AutomationProjectInfo> _projects = [];
+    private string _newProjectName = string.Empty;
+    private string? _error;
+    private bool _loading = true;
+    private bool _showCreateDialog;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjectsAsync();
+    }
+
+    private async Task LoadProjectsAsync()
+    {
+        try
+        {
+            _loading = true;
+            _error = null;
+            _projects = [.. await ProjectStore.ListAsync()];
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CreateProjectAsync()
+    {
+        try
+        {
+            var project = await ProjectStore.CreateAsync(_newProjectName);
+            _showCreateDialog = false;
+            _newProjectName = string.Empty;
+            Navigation.NavigateTo($"/editor/{project.Id:D}");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void OpenProject(Guid projectId) =>
+        Navigation.NavigateTo($"/editor/{projectId:D}");
+}
