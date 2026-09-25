@@ -92,3 +92,11 @@ Before changing architecture, read the relevant files under `docs/` and `.github
 ## Primary feature
 
 The first end-to-end feature is tracked by GitHub issue #1: create a workflow in the UI, save JSON, execute through CLI/Core/module, and stream the result back to the UI.
+
+## Source file organization
+
+- **One top-level class/interface/record per source file.**
+- The file name must match the primary type name (for example, `IAndroidAppiumService.cs` contains `IAndroidAppiumService`).
+- Do not place multiple service interfaces, concrete services, modules, helpers, or other top-level types in a single source file.
+- When an implementation naturally requires a base class, interface, module, factory, invoker, or descriptor type, create a separate file for each type.
+- Agents must preserve this rule when modifying existing code and must split newly introduced multi-type files before considering the task complete.
