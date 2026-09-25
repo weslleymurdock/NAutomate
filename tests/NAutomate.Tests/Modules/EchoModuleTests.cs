@@ -52,7 +52,7 @@ public sealed class EchoModuleTests
         var parameters = new Dictionary<string, object?> { ["message"] = "   " };
         var step = new WorkflowStep("step-1", "core.echo", parameters);
         var workflow = new AutomationWorkflow(1, "Test", new[] { step });
-        var context = new ModuleExecutionContext(workflow, step, CancellationToken.None);
+        var context = new ModuleExecutionContext(workflow, step, parameters, CancellationToken.None);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(async () => await module.ExecuteAsync(context));
