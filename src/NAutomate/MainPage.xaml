@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:NAutomate"
-             xmlns:components="clr-namespace:NAutomate.Components"
+             xmlns:components="clr-namespace:NAutomate.UI.Components;assembly=NAutomate.UI"
              x:Class="NAutomate.MainPage">
 
     <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
