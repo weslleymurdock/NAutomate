@@ -594,9 +594,487 @@
 
     private object? ParseVariableValue(string? variableName, string value, string? explicitType = null)
     {
-        var name = variableName?.TrimStart('$', '@');
+        var name = variableName?.TrimStart('
+    }
+
+    private static string NormalizeVariable(IReadOnlyDictionary<string, string?> values, string key) =>
+        values.TryGetValue(key, out var value) ? (value ?? string.Empty).TrimStart('$', '@') : string.Empty;
+
+    private async Task SelectEnvironmentAsync(string? id)
+    {
+        _selectedEnvironmentId = id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddEnvironmentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newEnvironmentName))
+            return;
+
+        var workflow = BuildWorkflow();
+        var environment = await EnvironmentService.CreateAsync(_newEnvironmentName, workflow);
+        _environments = [.. await EnvironmentService.ListAsync(workflow)];
+        _selectedEnvironmentId = environment.Id;
+        _newEnvironmentName = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteEnvironmentAsync()
+    {
+        if (_selectedEnvironmentId is null)
+            return;
+
+        await EnvironmentService.DeleteAsync(_selectedEnvironmentId);
+        var workflow = BuildWorkflow();
+        _environments = [.. await EnvironmentService.ListAsync(workflow)];
+        if (_environments.Count == 0)
+            _environments = [await EnvironmentService.CreateAsync("Default", workflow)];
+        _selectedEnvironmentId = _environments[0].Id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string? GetEnvironmentValue(string key) =>
+        _selectedEnvironment?.Values.TryGetValue(key, out var value) == true ? value : null;
+
+    private async Task SetEnvironmentValueAsync(string key, string? value)
+    {
+        if (_selectedEnvironment is null)
+            return;
+
+        var values = new Dictionary<string, string?>(_selectedEnvironment.Values, StringComparer.Ordinal) { [key] = value };
+        var saved = await EnvironmentService.SaveAsync(_selectedEnvironment with { Values = values }, BuildWorkflow());
+        _environments = [.. _environments.Select(x => x.Id == saved.Id ? saved : x)];
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddVariableAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newVariableName))
+            return;
+
+        var name = _newVariableName.Trim();
+        if (_variables.Any(x => x.Name.Equals(name, StringComparison.Ordinal)))
+            return;
+
+        var variable = new AutomationVariableDefinition(
+            name,
+            AutomationVariableScope.Global,
+            null,
+            null,
+            _newVariableType,
+            string.IsNullOrWhiteSpace(_newVariableDefault) ? null : WorkflowParameterParser.Parse(_newVariableDefault, _newVariableType));
+
+        _variables.Add(variable);
+        _newVariableName = string.Empty;
+        _newVariableDefault = string.Empty;
+        await SynchronizeEnvironmentsAsync();
+    }
+
+    private async Task RemoveVariableAsync(string key)
+    {
+        _variables.RemoveAll(x => x.Key.Equals(key, StringComparison.Ordinal));
+        await SynchronizeEnvironmentsAsync();
+    }
+
+    private async Task SynchronizeEnvironmentsAsync()
+    {
+        _environments = [.. await EnvironmentService.SynchronizeAsync(BuildWorkflow())];
+        if (_selectedEnvironmentId is not null && !_environments.Any(x => x.Id == _selectedEnvironmentId))
+            _selectedEnvironmentId = _environments.FirstOrDefault()?.Id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DebugAsync()
+    {
+        if (HasActiveDebugSession)
+            return;
+
+        try
+        {
+            var workflow = BuildWorkflow();
+            WorkflowJson.Validate(workflow);
+            _console = string.Empty;
+            _activeStepId = null;
+            var sink = new UiEventSink(this);
+            _debugSession = new WorkflowExecutionSession(WorkflowEngine, workflow, sink, _selectedEnvironment);
+            _debugTask = _debugSession.RunAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            AppendConsole($"[ERROR] {ex.Message}\n");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task EnsureDebugSessionAsync()
+    {
+        if (!HasActiveDebugSession)
+            await DebugAsync();
+    }
+
+    private async Task Play()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.Play();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StepInto()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.StepInto();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StepOver()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.StepOver();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Pause()
+    {
+        _debugSession?.Pause();
+        StateHasChanged();
+    }
+
+    private async Task StopAsync()
+    {
+        _debugSession?.Stop();
+        if (_debugTask is not null)
+        {
+            try { await _debugTask; } catch { }
+        }
+        _debugSession = null;
+        _debugTask = null;
+        _activeStepId = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearConsole()
+    {
+        _console = string.Empty;
+        StateHasChanged();
+    }
+
+    private void AppendConsole(string text) => _console += text;
+
+    private async Task SynchronizeAndRenderAsync()
+    {
+        await SynchronizeEnvironmentsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private int GetStepNumber(string? stepId)
+    {
+        if (string.IsNullOrWhiteSpace(stepId))
+            return 0;
+        var step = FindStep(_steps, stepId);
+        return step?.Sequence ?? 0;
+    }
+
+    private static EditorFlowStep? FindStep(IEnumerable<EditorFlowStep> nodes, string id)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.Id == id)
+                return node;
+            var child = FindStep(node.Children, id) ?? FindStep(node.ElseChildren, id);
+            if (child is not null)
+                return child;
+        }
+        return null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_debugSession is not null)
+            await _debugSession.DisposeAsync();
+    }
+
+    private sealed class UiEventSink(Editor page) : IExecutionEventSink
+    {
+        public async ValueTask OnEventAsync(ExecutionEvent item, CancellationToken cancellationToken = default)
+        {
+            await page.InvokeAsync(() =>
+            {
+                if (!string.IsNullOrWhiteSpace(item.StepId))
+                    page._activeStepId = item.StepId;
+
+                var number = page.GetStepNumber(item.StepId);
+                var prefix = number > 0 ? $"[STEP.{number:00}]" : "[WORKFLOW]";
+
+                page._console += item.Kind switch
+                {
+                    "workflow" => $"[WORKFLOW] {item.Message}\n",
+                    "running" => $"{prefix} Running: {item.ModuleId}\n",
+                    "output" => $"{prefix} {item.Message}\n",
+                    "success" => $"{prefix} Succeeded: true\n",
+                    "failure" => $"{prefix} Succeeded: false — {item.Message}\n",
+                    "condition-evaluated" => $"{prefix} Condition: {item.Message}\n",
+                    "branch-selected" => $"{prefix} Branch: {item.Message}\n",
+                    "loop-started" => $"{prefix} Loop: {item.Message}\n",
+                    "loop-iteration-started" => $"{prefix} Iteration: {item.Message}\n",
+                    "variable-changed" => $"{prefix} Variable: {item.Message}\n",
+                    "exit" => $"{prefix} Exit code: {item.Message}\n",
+                    "completed" => $"[COMPLETED] {item.Message}\n",
+                    "cancelled" => $"[CANCELLED] {item.Message}\n",
+                    "exception" => $"[EXCEPTION] {item.Message}\n",
+                    _ => $"{item.Message}\n"
+                };
+
+                page.StateHasChanged();
+            });
+        }
+    }
+}
+, '@');
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (value.StartsWith('
+    }
+
+    private static string NormalizeVariable(IReadOnlyDictionary<string, string?> values, string key) =>
+        values.TryGetValue(key, out var value) ? (value ?? string.Empty).TrimStart('$', '@') : string.Empty;
+
+    private async Task SelectEnvironmentAsync(string? id)
+    {
+        _selectedEnvironmentId = id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddEnvironmentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newEnvironmentName))
+            return;
+
+        var workflow = BuildWorkflow();
+        var environment = await EnvironmentService.CreateAsync(_newEnvironmentName, workflow);
+        _environments = [.. await EnvironmentService.ListAsync(workflow)];
+        _selectedEnvironmentId = environment.Id;
+        _newEnvironmentName = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteEnvironmentAsync()
+    {
+        if (_selectedEnvironmentId is null)
+            return;
+
+        await EnvironmentService.DeleteAsync(_selectedEnvironmentId);
+        var workflow = BuildWorkflow();
+        _environments = [.. await EnvironmentService.ListAsync(workflow)];
+        if (_environments.Count == 0)
+            _environments = [await EnvironmentService.CreateAsync("Default", workflow)];
+        _selectedEnvironmentId = _environments[0].Id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string? GetEnvironmentValue(string key) =>
+        _selectedEnvironment?.Values.TryGetValue(key, out var value) == true ? value : null;
+
+    private async Task SetEnvironmentValueAsync(string key, string? value)
+    {
+        if (_selectedEnvironment is null)
+            return;
+
+        var values = new Dictionary<string, string?>(_selectedEnvironment.Values, StringComparer.Ordinal) { [key] = value };
+        var saved = await EnvironmentService.SaveAsync(_selectedEnvironment with { Values = values }, BuildWorkflow());
+        _environments = [.. _environments.Select(x => x.Id == saved.Id ? saved : x)];
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AddVariableAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newVariableName))
+            return;
+
+        var name = _newVariableName.Trim();
+        if (_variables.Any(x => x.Name.Equals(name, StringComparison.Ordinal)))
+            return;
+
+        var variable = new AutomationVariableDefinition(
+            name,
+            AutomationVariableScope.Global,
+            null,
+            null,
+            _newVariableType,
+            string.IsNullOrWhiteSpace(_newVariableDefault) ? null : WorkflowParameterParser.Parse(_newVariableDefault, _newVariableType));
+
+        _variables.Add(variable);
+        _newVariableName = string.Empty;
+        _newVariableDefault = string.Empty;
+        await SynchronizeEnvironmentsAsync();
+    }
+
+    private async Task RemoveVariableAsync(string key)
+    {
+        _variables.RemoveAll(x => x.Key.Equals(key, StringComparison.Ordinal));
+        await SynchronizeEnvironmentsAsync();
+    }
+
+    private async Task SynchronizeEnvironmentsAsync()
+    {
+        _environments = [.. await EnvironmentService.SynchronizeAsync(BuildWorkflow())];
+        if (_selectedEnvironmentId is not null && !_environments.Any(x => x.Id == _selectedEnvironmentId))
+            _selectedEnvironmentId = _environments.FirstOrDefault()?.Id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DebugAsync()
+    {
+        if (HasActiveDebugSession)
+            return;
+
+        try
+        {
+            var workflow = BuildWorkflow();
+            WorkflowJson.Validate(workflow);
+            _console = string.Empty;
+            _activeStepId = null;
+            var sink = new UiEventSink(this);
+            _debugSession = new WorkflowExecutionSession(WorkflowEngine, workflow, sink, _selectedEnvironment);
+            _debugTask = _debugSession.RunAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            AppendConsole($"[ERROR] {ex.Message}\n");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task EnsureDebugSessionAsync()
+    {
+        if (!HasActiveDebugSession)
+            await DebugAsync();
+    }
+
+    private async Task Play()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.Play();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StepInto()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.StepInto();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StepOver()
+    {
+        await EnsureDebugSessionAsync();
+        _debugSession?.StepOver();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Pause()
+    {
+        _debugSession?.Pause();
+        StateHasChanged();
+    }
+
+    private async Task StopAsync()
+    {
+        _debugSession?.Stop();
+        if (_debugTask is not null)
+        {
+            try { await _debugTask; } catch { }
+        }
+        _debugSession = null;
+        _debugTask = null;
+        _activeStepId = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ClearConsole()
+    {
+        _console = string.Empty;
+        StateHasChanged();
+    }
+
+    private void AppendConsole(string text) => _console += text;
+
+    private async Task SynchronizeAndRenderAsync()
+    {
+        await SynchronizeEnvironmentsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private int GetStepNumber(string? stepId)
+    {
+        if (string.IsNullOrWhiteSpace(stepId))
+            return 0;
+        var step = FindStep(_steps, stepId);
+        return step?.Sequence ?? 0;
+    }
+
+    private static EditorFlowStep? FindStep(IEnumerable<EditorFlowStep> nodes, string id)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.Id == id)
+                return node;
+            var child = FindStep(node.Children, id) ?? FindStep(node.ElseChildren, id);
+            if (child is not null)
+                return child;
+        }
+        return null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_debugSession is not null)
+            await _debugSession.DisposeAsync();
+    }
+
+    private sealed class UiEventSink(Editor page) : IExecutionEventSink
+    {
+        public async ValueTask OnEventAsync(ExecutionEvent item, CancellationToken cancellationToken = default)
+        {
+            await page.InvokeAsync(() =>
+            {
+                if (!string.IsNullOrWhiteSpace(item.StepId))
+                    page._activeStepId = item.StepId;
+
+                var number = page.GetStepNumber(item.StepId);
+                var prefix = number > 0 ? $"[STEP.{number:00}]" : "[WORKFLOW]";
+
+                page._console += item.Kind switch
+                {
+                    "workflow" => $"[WORKFLOW] {item.Message}\n",
+                    "running" => $"{prefix} Running: {item.ModuleId}\n",
+                    "output" => $"{prefix} {item.Message}\n",
+                    "success" => $"{prefix} Succeeded: true\n",
+                    "failure" => $"{prefix} Succeeded: false — {item.Message}\n",
+                    "condition-evaluated" => $"{prefix} Condition: {item.Message}\n",
+                    "branch-selected" => $"{prefix} Branch: {item.Message}\n",
+                    "loop-started" => $"{prefix} Loop: {item.Message}\n",
+                    "loop-iteration-started" => $"{prefix} Iteration: {item.Message}\n",
+                    "variable-changed" => $"{prefix} Variable: {item.Message}\n",
+                    "exit" => $"{prefix} Exit code: {item.Message}\n",
+                    "completed" => $"[COMPLETED] {item.Message}\n",
+                    "cancelled" => $"[CANCELLED] {item.Message}\n",
+                    "exception" => $"[EXCEPTION] {item.Message}\n",
+                    _ => $"{item.Message}\n"
+                };
+
+                page.StateHasChanged();
+            });
+        }
+    }
+}
+) || value.StartsWith('@'))
+            return value;
+
         var type = explicitType ?? _variables.FirstOrDefault(x => x.Name.Equals(name, StringComparison.Ordinal))?.Type ?? "System.String";
-        return string.IsNullOrWhiteSpace(value) ? null : WorkflowParameterParser.Parse(value, type);
+        return WorkflowParameterParser.Parse(value, type);
     }
 
     private static string NormalizeVariable(IReadOnlyDictionary<string, string?> values, string key) =>
