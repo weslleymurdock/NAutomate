@@ -57,6 +57,11 @@ internal static class PwshShellOperationInvoker
                 result = task.GetType().GetProperty("Result")?.GetValue(task);
             }
 
+            if (result is ShellCommandResult shellResult)
+                return new ModuleExecutionResult(
+                    shellResult.StandardOutput.TrimEnd(),
+                    shellResult.Succeeded);
+
             return new ModuleExecutionResult(SerializeResult(result));
         }
 
