@@ -68,7 +68,7 @@
 
                                 @if (!project.IsValid)
                                 {
-                                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">
+                                    <MudAlert Severity="Severity.Error" Class="mt-3">
                                         Project is not executable: @string.Join(" ", project.ValidationErrors)
                                     </MudAlert>
                                 }
