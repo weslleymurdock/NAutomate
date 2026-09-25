@@ -2,6 +2,7 @@ using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Android;
 using OpenQA.Selenium.Appium.iOS;
 using OpenQA.Selenium.Appium.Enums;
+
 namespace NAutomate.Modules.Appium;
 
 public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumService
@@ -9,7 +10,12 @@ public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumS
     protected override IOSDriver CreateDriver(Uri serverUrl, AppiumOptions options) =>
         new(serverUrl, options);
 
-    public void SetSetting(string setting, object value) => Driver.SetSetting(setting, value);
+    public void SetSetting(string setting, object value) =>
+        ExecuteScript("mobile: setSetting", new Dictionary<string, object>
+        {
+            ["setting"] = setting,
+            ["value"] = value
+        });
 
     public void ShakeDevice() => TypedDriver.ShakeDevice();
 
@@ -26,11 +32,18 @@ public sealed class IOSAppiumService : AppiumServiceBase<IOSDriver>, IIOSAppiumS
         IDictionary<string, string>? environmentVariables = null) =>
         TypedDriver.LaunchAppWithArguments(bundleId, processArguments, environmentVariables);
 
-    public bool IsLocked() => Driver.IsLocked();
+    public bool IsLocked() =>
+        Convert.ToBoolean(ExecuteScript("mobile: isLocked"));
 
-    public void Lock(int? seconds = null) => Driver.Lock(seconds);
+    public void Lock(int? seconds = null) =>
+        ExecuteScript(
+            "mobile: lock",
+            new Dictionary<string, object?>
+            {
+                ["seconds"] = seconds ?? 0
+            });
 
-    public void Unlock() => Driver.Unlock();
+    public void Unlock() => ExecuteScript("mobile: unlock");
 
     public void SetClipboardUrl(string url) => TypedDriver.SetClipboardUrl(url);
 
