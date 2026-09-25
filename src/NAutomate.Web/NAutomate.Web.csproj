@@ -15,5 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NAutomate.Core\NAutomate.Core.csproj" />
+    <ProjectReference Include="..\NAutomate.Modules\NAutomate.Modules.csproj" />
   </ItemGroup>
 </Project>
