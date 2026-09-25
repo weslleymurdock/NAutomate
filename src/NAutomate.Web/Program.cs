@@ -12,6 +12,7 @@ builder.Services.AddSingleton<IModuleRegistry>(_ => new ModuleRegistry(OfficialM
 builder.Services.AddSingleton<WorkflowEngine>();
 builder.Services.AddSingleton<FileWorkflowStore>();
 builder.Services.AddSingleton<IExecutionEnvironmentStore, FileExecutionEnvironmentStore>();
+builder.Services.AddSingleton<IExecutionEnvironmentService, ExecutionEnvironmentService>();
 builder.Services.AddSingleton<IModuleSettingsTabProvider, AppiumSettingsTabProvider>();
 
 builder.Services.AddRazorComponents()
