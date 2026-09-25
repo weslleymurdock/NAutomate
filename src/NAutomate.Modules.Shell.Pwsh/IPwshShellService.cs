@@ -9,5 +9,7 @@ namespace NAutomate.Modules.Shell.Pwsh;
 public interface IPwshShellService
 {
     [AutomationOperation("run", "Run", "Executes a PowerShell script and captures its standard output, standard error, and exit code.")]
-    ShellCommandResult Run(string run);
+    Task<ShellCommandResult> Run(
+        string run,
+        CancellationToken cancellationToken = default);
 }
