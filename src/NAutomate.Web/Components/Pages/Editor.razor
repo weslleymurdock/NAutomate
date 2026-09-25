@@ -452,7 +452,7 @@
 
         var workflow = BuildWorkflow();
         var environment = await EnvironmentService.CreateAsync(_newEnvironmentName, workflow);
-        _environments = [.. await EnvironmentService.ListAsync(workflow.Name)];
+        _environments = [.. await EnvironmentService.ListAsync(workflow)];
         _selectedEnvironmentId = environment.Id;
         _newEnvironmentName = string.Empty;
         await InvokeAsync(StateHasChanged);
