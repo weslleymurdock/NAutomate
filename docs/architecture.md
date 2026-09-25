@@ -93,3 +93,10 @@ Hosts register the software dependencies required by their enabled modules throu
 Only dependencies registered by the host/modules are validated. This prevents unrelated tools such as Node.js, npm, Docker, or PowerShell from generating warnings unless they are actually configured as dependencies for the running host.
 
 Required dependencies that are unavailable are presented as persistent warning notifications in the top-right notification area.
+
+
+## Automation projects
+
+The MAUI host uses `FileAutomationProjectStore` rooted at `FileSystem.AppDataDirectory/NAutomate/Projects`. The shared UI consumes `IAutomationProjectStore`, so project discovery and the four-file integrity model are host-independent.
+
+Execution from the editor saves and validates the project before starting the workflow.
