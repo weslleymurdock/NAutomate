@@ -1,7 +1,7 @@
 using NAutomate.Abstractions;
 using NAutomate.Core;
 using Xunit;
-
+using NAutomate.Parser;
 namespace NAutomate.Tests.Runtime;
 
 public sealed class ExecutionEnvironmentStoreTests
