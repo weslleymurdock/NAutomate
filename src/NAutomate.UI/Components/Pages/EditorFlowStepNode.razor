@@ -32,6 +32,7 @@
             @for (var index = 0; index < Step.Children.Count; index++)
             {
                 var child = Step.Children[index];
+                var insertionIndex = index + 1;
                 <EditorFlowStepNode Step="child"
                                     ActiveStepId="@ActiveStepId"
                                     Disabled="@Disabled"
@@ -41,7 +42,7 @@
                                     OnDropChild="OnDropChild" />
                 <div class="workflow-dropzone workflow-dropzone-between"
                      @ondragover:preventDefault="true"
-                     @ondrop="@(() => DropAsync(false, index + 1))">
+                     @ondrop="@(() => DropAsync(false, insertionIndex))">
                     <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
                     <MudText Typo="Typo.caption">Drop here</MudText>
                 </div>
@@ -65,6 +66,7 @@
                 @for (var index = 0; index < Step.ElseChildren.Count; index++)
                 {
                     var child = Step.ElseChildren[index];
+                    var insertionIndex = index + 1;
                     <EditorFlowStepNode Step="child"
                                         ActiveStepId="@ActiveStepId"
                                         Disabled="@Disabled"
@@ -74,7 +76,7 @@
                                         OnDropChild="OnDropChild" />
                     <div class="workflow-dropzone workflow-dropzone-between"
                          @ondragover:preventDefault="true"
-                         @ondrop="@(() => DropAsync(true, index + 1))">
+                         @ondrop="@(() => DropAsync(true, insertionIndex))">
                         <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
                         <MudText Typo="Typo.caption">Drop here</MudText>
                     </div>
