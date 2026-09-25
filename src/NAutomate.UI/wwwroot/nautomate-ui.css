@@ -1,0 +1,185 @@
+.nautomate-editor {
+    height: calc(100vh - 150px);
+    min-height: 560px;
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr) 300px;
+    overflow: hidden;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 14px;
+    background: var(--mud-palette-background);
+}
+
+.nautomate-editor .module-sidebar,
+.nautomate-editor .step-inspector {
+    overflow: auto;
+    min-width: 0;
+    background: var(--mud-palette-surface);
+}
+
+.nautomate-editor .module-sidebar {
+    border-right: 1px solid var(--mud-palette-lines-default);
+}
+
+.nautomate-editor .step-inspector {
+    border-left: 1px solid var(--mud-palette-lines-default);
+}
+
+.nautomate-editor .workflow-tree-canvas {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.nautomate-editor .workflow-tree-viewport {
+    height: calc(100% - 50px);
+    overflow: auto;
+}
+
+.nautomate-editor .workflow-tree {
+    padding: 24px;
+    min-width: 680px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.workflow-dropzone {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px dashed var(--mud-palette-lines-default);
+    border-radius: 10px;
+    color: var(--mud-palette-text-secondary);
+    transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.workflow-dropzone:hover {
+    border-color: var(--mud-palette-primary);
+    background: color-mix(in srgb, var(--mud-palette-primary) 8%, transparent);
+}
+
+.workflow-dropzone-root {
+    margin: 12px 0 24px;
+}
+
+.workflow-block {
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-left: 4px solid var(--mud-palette-primary);
+    border-radius: 14px;
+    background: var(--mud-palette-surface);
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+
+.workflow-block-active {
+    box-shadow: 0 0 0 2px var(--mud-palette-warning), 0 6px 20px rgba(0,0,0,.2);
+}
+
+.workflow-block-header,
+.workflow-branch-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.workflow-block-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.workflow-block-summary {
+    display: block;
+    margin: 3px 42px 8px 28px;
+    opacity: .72;
+    font-family: Consolas, Monaco, monospace;
+}
+
+.workflow-branch {
+    margin: 8px 0 0 20px;
+    padding: 8px 8px 8px 14px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 10px;
+    background: var(--mud-palette-background);
+}
+
+.workflow-branch-main {
+    border-left: 3px solid var(--mud-palette-success);
+}
+
+.workflow-branch-else {
+    border-left: 3px solid var(--mud-palette-warning);
+}
+
+.workflow-module { border-left-color: var(--mud-palette-info); }
+.workflow-loop { border-left-color: var(--mud-palette-secondary); }
+.workflow-if { border-left-color: var(--mud-palette-primary); }
+.workflow-set { border-left-color: var(--mud-palette-info); }
+.workflow-exit { border-left-color: var(--mud-palette-error); }
+
+.palette-drag {
+    cursor: grab;
+    border-radius: 8px;
+}
+
+.palette-drag:active {
+    cursor: grabbing;
+}
+
+.palette-drag:hover {
+    background: var(--mud-palette-action-default-hover);
+}
+
+.drag-active {
+    outline: 2px dashed var(--mud-palette-primary);
+    outline-offset: 2px;
+}
+
+.environment-summary {
+    min-width: 0;
+}
+
+.execution-console {
+    margin-top: 8px;
+}
+
+.execution-output {
+    margin: 0;
+    min-height: 100px;
+    max-height: 220px;
+    overflow: auto;
+    padding: 10px 12px;
+    white-space: pre-wrap;
+    font-family: Consolas, Monaco, monospace;
+    font-size: .78rem;
+}
+
+.variable-row {
+    background: var(--mud-palette-background);
+}
+
+@media (max-width: 1100px) {
+    .nautomate-editor {
+        grid-template-columns: 220px minmax(0, 1fr);
+    }
+
+    .nautomate-editor .step-inspector {
+        display: none;
+    }
+}
+
+@media (max-width: 800px) {
+    .nautomate-editor {
+        grid-template-columns: 1fr;
+        height: calc(100vh - 120px);
+    }
+
+    .nautomate-editor .module-sidebar {
+        display: none;
+    }
+}
