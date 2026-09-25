@@ -51,6 +51,7 @@ The official Selenium module is provided by `NAutomate.Modules.Selenium` and use
 - `selenium.chrome`
 - `selenium.firefox`
 - `selenium.edge`
+- `selenium.safari` (macOS)
 
 Each service supports session lifecycle, navigation, element lookup and interaction, page metadata, and screenshots. Selenium Manager is used by the local WebDriver constructors, so a workflow does not need to install driver executables manually.
 
