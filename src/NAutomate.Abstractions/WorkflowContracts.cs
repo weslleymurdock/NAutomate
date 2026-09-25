@@ -48,12 +48,21 @@ public sealed record AutomationOperationDescriptor(
     string ReturnType,
     IReadOnlyList<AutomationParameterDescriptor> Parameters);
 
+public sealed record AutomationPropertyDescriptor(
+    string Name,
+    string DisplayName,
+    string Description,
+    string Type,
+    bool Readable,
+    bool Writable);
+
 public sealed record AutomationServiceDescriptor(
     string Id,
     string DisplayName,
     string Description,
     string Version,
-    IReadOnlyList<AutomationOperationDescriptor> Operations);
+    IReadOnlyList<AutomationOperationDescriptor> Operations,
+    IReadOnlyList<AutomationPropertyDescriptor>? Properties = null);
 
 /// <summary>A declarative workflow persisted by NAutomate.</summary>
 public sealed record AutomationWorkflow(
