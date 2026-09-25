@@ -4,7 +4,7 @@ namespace NAutomate.Core;
 
 public interface IExecutionEnvironmentStore
 {
-    Task<IReadOnlyList<AutomationEnvironment>> ListAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<AutomationEnvironment>> ListAsync(string workflowName, CancellationToken cancellationToken = default);
     Task<AutomationEnvironment> CreateAsync(
         string name,
         AutomationWorkflow workflow,
