@@ -122,6 +122,7 @@
                 @for (var index = 0; index < _steps.Count; index++)
                 {
                     var step = _steps[index];
+                    var insertionIndex = index + 1;
                     <EditorFlowStepNode Step="step"
                                         ActiveStepId="@_activeStepId"
                                         Disabled="@HasActiveDebugSession"
@@ -131,7 +132,7 @@
                                         OnDropChild="DropChildAsync" />
                     <div class="workflow-dropzone workflow-dropzone-root workflow-dropzone-between"
                          @ondragover:preventDefault="true"
-                         @ondrop="@(() => DropRootAsync(index + 1))">
+                         @ondrop="@(() => DropRootAsync(insertionIndex))">
                         <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
                         <MudText Typo="Typo.caption">Drop a step here</MudText>
                     </div>
