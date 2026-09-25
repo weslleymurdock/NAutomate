@@ -1,4 +1,6 @@
+using System.Linq;
 using NAutomate.Abstractions;
+using NAutomate.Modules;
 
 namespace NAutomate.Core;
 

@@ -1,4 +1,9 @@
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Xunit;
 using NAutomate.Core;
+using NAutomate.Abstractions;
 
 namespace NAutomate.Tests.Runtime;
 

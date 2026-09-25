@@ -1,20 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <TestRunner>Microsoft.Testing.Platform</TestRunner>
+    <IsPackable>false</IsPackable>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.MTP" Version="10.0.1">
-      <IncludeAssets>runtime; compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+
+    <PackageReference Include="coverlet.MTP" Version="10.0.1" />
+
+    <PackageReference Include="xunit.v3.mtp-v2" Version="4.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-    <PackageReference Include="xunit.v3" Version="4.0.1" />
+    <PackageReference Include="Microsoft.Testing.Platform" Version="2.4.0" />
+
   </ItemGroup>
+
 
   <ItemGroup>
     <Using Include="Xunit" />
@@ -23,7 +31,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\NAutomate.Abstractions\NAutomate.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\NAutomate.Core\NAutomate.Core.csproj" />
-    <ProjectReference Include="..\..\src\NAutomate.CLI\NAutomate.CLI.csproj" /> 
+    <ProjectReference Include="..\..\src\NAutomate.CLI\NAutomate.CLI.csproj" />
+    <ProjectReference Include="..\..\src\NAutomate.Modules\NAutomate.Modules.csproj" />
   </ItemGroup>
 
 </Project>

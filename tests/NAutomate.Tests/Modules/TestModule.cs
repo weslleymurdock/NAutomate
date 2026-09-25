@@ -1,4 +1,9 @@
+using System.Collections.Generic;
+using System.Threading;
+using Xunit;
 using NAutomate.Abstractions;
+using System.Threading.Tasks;
+
 
 namespace NAutomate.Tests.Modules;
 
