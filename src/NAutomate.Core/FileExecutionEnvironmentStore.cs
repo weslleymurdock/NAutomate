@@ -47,7 +47,7 @@ public sealed class FileExecutionEnvironmentStore : IExecutionEnvironmentStore
         try
         {
             var environments = await ReadAsync(cancellationToken);
-            if (environments.Any(x => string.Equals(x.Name, name.Trim(), StringComparison.OrdinalIgnoreCase)))
+            if (environments.Any(x => string.Equals(x.WorkflowName, workflow.Name, StringComparison.Ordinal) && string.Equals(x.Name, name.Trim(), StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException($"An execution environment named '{name}' already exists.");
 
             var environment = new AutomationEnvironment(
