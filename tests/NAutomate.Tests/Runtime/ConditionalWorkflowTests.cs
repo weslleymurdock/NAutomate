@@ -112,6 +112,25 @@ public sealed class ConditionalWorkflowTests
         Assert.Equal("1", Assert.Single(second.Events.Where(x => x.Kind == "output")).Message);
     }
 
+
+    [Fact]
+    public async Task ExitZeroCompletesAndNonZeroFailsWithoutExecutingFollowingSteps()
+    {
+        var workflow = Workflow(
+        [
+            new WorkflowStep("before", "core.echo", new Dictionary<string, object?> { ["message"] = "before" }),
+            new ExitStep("exit", 7),
+            new WorkflowStep("after", "core.echo", new Dictionary<string, object?> { ["message"] = "after" })
+        ]);
+
+        var sink = new RecordingSink();
+        var result = await new WorkflowEngine(Registry()).ExecuteAsync(workflow, sink);
+
+        Assert.Equal(WorkflowExecutionStatus.Failure, result.Status);
+        Assert.Equal(["before"], sink.Events.Where(x => x.Kind == "output").Select(x => x.Message));
+        Assert.Contains(sink.Events, x => x.Kind == "exit" && x.Message == "7");
+    }
+
     [Fact]
     public void VariableReferencesSupportDollarAndAtSyntax()
     {
