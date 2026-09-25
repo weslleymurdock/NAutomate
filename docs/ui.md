@@ -16,6 +16,6 @@ The MAUI home page loads persisted projects through `IAutomationProjectStore`. P
 
 ## Workflow editor
 
-The existing editor layout is preserved. Adding steps uses drag-and-drop from the palette. The workflow root and every executable branch expose insertion targets, including positions between sibling steps. Clicking a palette item remains a fallback, but drag-and-drop is the mechanism used to select the destination explicitly.
+The existing editor layout is preserved. Adding steps uses drag-and-drop from the palette. The workflow root and every executable branch expose insertion targets, including positions between sibling steps. The palette supports HTML drag-and-drop and a pointer-event fallback for touch/MAUI WebView input, so the destination is selected by the physical drop position rather than an implicit selected container.
 
 The workflow canvas owns the scrolling as the automation grows. Environment selection and variables remain in the existing dialog rather than permanently occupying editor space.
