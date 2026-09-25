@@ -1,9 +1,11 @@
 using MudBlazor.Services;
 using NAutomate.Abstractions;
+using NAutomate.Abstractions.Projects;
 using NAutomate.Core;
 using NAutomate.Modules;
 using NAutomate.Modules.Appium;
 using NAutomate.UI;
+using NAutomate.Core.Projects;
 using NAutomate.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +28,8 @@ builder.Services.AddNAutomateUI(dependencies =>
 
 builder.Services.AddSingleton<IModuleRegistry>(_ => new ModuleRegistry(OfficialModules.GetModules()));
 builder.Services.AddSingleton<WorkflowEngine>();
+builder.Services.AddSingleton<IAutomationProjectStore>(
+    _ => new FileAutomationProjectStore(Path.Combine(builder.Environment.ContentRootPath, "Projects")));
 builder.Services.AddSingleton<FileWorkflowStore>();
 builder.Services.AddSingleton<IExecutionEnvironmentStore, FileExecutionEnvironmentStore>();
 builder.Services.AddSingleton<IExecutionEnvironmentService, ExecutionEnvironmentService>();
