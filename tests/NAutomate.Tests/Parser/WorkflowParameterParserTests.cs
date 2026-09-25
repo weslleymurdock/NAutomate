@@ -23,7 +23,8 @@ public sealed class WorkflowParameterParserTests
         var parsed = WorkflowParameterParser.Parse(values, parameters);
 
         Assert.Equal(true, parsed["headless"]);
-        Assert.Equal(["--incognito", "--disable-gpu"], parsed["arguments"]);
+        var arguments = Assert.IsType<string[]>(parsed["arguments"]);
+        Assert.Equal(["--incognito", "--disable-gpu"], arguments);
     }
 
     [Fact]
