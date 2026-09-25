@@ -4,7 +4,9 @@ NAutomate.UI is a Razor Class Library that contains the reusable Blazor UI for N
 
 ## Consumers
 
-The repository contains the .NET MAUI Blazor Hybrid host at `src/NAutomate` and the Web host at `src/NAutomate.Web`. Both reference the shared UI library.\n\nBoth hosts should reference:
+The repository contains the .NET MAUI Blazor Hybrid host at `src/NAutomate` and the Web host at `src/NAutomate.Web`. Both reference the shared UI library.
+
+Both hosts should reference:
 
     src/NAutomate.UI/NAutomate.UI.csproj
 
