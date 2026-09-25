@@ -1,3 +1,4 @@
+.editor-shell { height: calc(100vh - 96px); min-height: 0; overflow: hidden; }
 .nautomate-editor {
     height: calc(100vh - 150px);
     min-height: 560px;
