@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NAutomate.Abstractions\NAutomate.Abstractions.csproj" />
+    <ProjectReference Include="..\NAutomate.Modules.Shell.Pwsh\NAutomate.Modules.Shell.Pwsh.csproj" />
     <PackageReference Include="Appium.WebDriver" Version="9.0.0" />
   </ItemGroup>
 
