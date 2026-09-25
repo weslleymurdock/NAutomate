@@ -1,3 +1,8 @@
+using System.Collections.Concurrent;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Enums;
+
 namespace NAutomate.Modules.Appium;
 
 public abstract class AppiumServiceBase<TDriver> where TDriver : AppiumDriver
