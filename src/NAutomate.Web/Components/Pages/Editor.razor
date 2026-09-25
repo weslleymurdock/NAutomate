@@ -705,7 +705,7 @@
             Id = id;
             Title = title;
             Module = module;
-            ModuleId = ModuleDescriptorParser.GetFamilyId(module.Split(" · ", StringSplitOptions.None)[0]);
+            ModuleId = ModuleDescriptorParser.GetModuleId(module);
             OperationId = kind;
             Icon = icon;
             Kind = kind;
