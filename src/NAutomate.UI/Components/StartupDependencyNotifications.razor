@@ -1,0 +1,37 @@
+@inject DependencyStatusStore DependencyStatusStore
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+@code {
+    protected override void OnInitialized()
+    {
+        DependencyStatusStore.Changed += OnChanged;
+        ShowNotifications();
+    }
+
+    private void OnChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            ShowNotifications();
+            StateHasChanged();
+        });
+    }
+
+    private void ShowNotifications()
+    {
+        foreach (var status in DependencyStatusStore.Statuses.Where(x => !x.IsAvailable && x.Dependency.Required))
+        {
+            var message = $"{status.Dependency.DisplayName} is not available. {status.Dependency.ConfigurationHint}".Trim();
+            Snackbar.Add(message, Severity.Warning, options =>
+            {
+                options.RequireInteraction = true;
+            }, $"dependency:{status.Dependency.Id}");
+        }
+    }
+
+    public void Dispose()
+    {
+        DependencyStatusStore.Changed -= OnChanged;
+    }
+}
