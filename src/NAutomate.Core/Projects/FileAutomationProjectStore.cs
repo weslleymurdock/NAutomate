@@ -14,6 +14,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
     private const string SettingsFileName = "settings.json";
     private const string EnvironmentFileName = "env.json";
     private const string ProjectFileName = "project.json";
+    private const string ArtifactsDirectoryName = "artifacts";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -72,6 +73,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         var directoryName = $"{id:D}-{Slugify(name)}";
         var directory = Path.Combine(ProjectsDirectory, directoryName);
         Directory.CreateDirectory(directory);
+        Directory.CreateDirectory(Path.Combine(directory, ArtifactsDirectoryName));
 
         var now = DateTimeOffset.UtcNow;
         var state = new AutomationProjectState
@@ -135,6 +137,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
 
         var directory = project.Info.DirectoryPath;
         Directory.CreateDirectory(directory);
+        Directory.CreateDirectory(Path.Combine(directory, ArtifactsDirectoryName));
 
         var automationJson = WorkflowJson.Serialize(project.Workflow);
         var settingsJson = JsonSerializer.Serialize(project.Settings, JsonOptions);
