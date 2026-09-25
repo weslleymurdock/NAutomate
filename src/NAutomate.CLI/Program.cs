@@ -1,5 +1,6 @@
 using NAutomate.Abstractions;
 using NAutomate.Core;
+using NAutomate.Modules;
 
 return await CliRunner.RunAsync(args, Console.Out, Console.Error);
 
@@ -16,7 +17,8 @@ public static class CliRunner
         {
             var workflow = await new FileWorkflowStore().LoadAsync(args[1], cancellationToken);
             await output.WriteLineAsync("NAutomate");
-            var result = await new WorkflowEngine(new ModuleRegistry()).ExecuteAsync(workflow, new ConsoleEventSink(output), cancellationToken);
+            var registry = new ModuleRegistry(NAutomate.Modules.OfficialModules.GetModules());
+            var result = await new WorkflowEngine(registry).ExecuteAsync(workflow, new ConsoleEventSink(output), cancellationToken);
             
             if (result.Status != WorkflowExecutionStatus.Success && !string.IsNullOrEmpty(result.ErrorMessage))
             {

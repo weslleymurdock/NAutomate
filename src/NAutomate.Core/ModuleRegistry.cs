@@ -1,6 +1,6 @@
 using System.Linq;
 using NAutomate.Abstractions;
-using NAutomate.Modules;
+
 
 namespace NAutomate.Core;
 
@@ -12,8 +12,12 @@ public sealed class ModuleRegistry : IModuleRegistry
     public ModuleRegistry(IEnumerable<IAutomationModule>? modules = null)
     {
         var defaultModules = NAutomate.Modules.OfficialModules.GetModules();
-        foreach (var module in modules ?? defaultModules)
+        foreach (var module in defaultModules)
             Register(module);
+
+        if (modules != null)
+            foreach (var module in modules)
+                Register(module);
     }
 
     public void Register(IAutomationModule module)
