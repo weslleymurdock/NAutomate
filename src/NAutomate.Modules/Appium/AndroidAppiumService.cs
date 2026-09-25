@@ -2,6 +2,7 @@ using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Android;
 using OpenQA.Selenium.Appium.iOS;
 using OpenQA.Selenium.Appium.Enums;
+
 namespace NAutomate.Modules.Appium;
 
 public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAndroidAppiumService
@@ -44,7 +45,8 @@ public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAn
     public void SetGsmSignalStrength(GsmSignalStrength gsmSignalStrength) =>
         TypedDriver.SetGsmSignalStrength(gsmSignalStrength);
 
-    public void SetGsmVoice(GsmVoiceState gsmVoiceState) => TypedDriver.SetGsmVoice(gsmVoiceState);
+    public void SetGsmVoice(GsmVoiceState gsmVoiceState) =>
+        TypedDriver.SetGsmVoice(gsmVoiceState);
 
     public void OpenNotifications() => TypedDriver.OpenNotifications();
 
@@ -56,9 +58,10 @@ public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAn
         string packageName,
         string performanceDataType,
         int dataReadAttempts = 1) =>
-        TypedDriver.GetPerformanceData(packageName, performanceDataType, dataReadAttempts);
+        TypedDriver.GetPerformanceData(packageName, performanceDataType, dataReadAttempts).ToArray();
 
-    public IReadOnlyList<string> GetPerformanceDataTypes() => TypedDriver.GetPerformanceDataTypes();
+    public IReadOnlyList<string> GetPerformanceDataTypes() =>
+        TypedDriver.GetPerformanceDataTypes().ToArray();
 
     public void Lock(int? seconds = null) => TypedDriver.Lock(seconds);
 
@@ -89,8 +92,4 @@ public sealed class AndroidAppiumService : AppiumServiceBase<AndroidDriver>, IAn
     public string CurrentActivity => TypedDriver.CurrentActivity;
 
     public string CurrentPackage => TypedDriver.CurrentPackage;
-
-    AppiumDriver Driver { get; }
-
 }
-
