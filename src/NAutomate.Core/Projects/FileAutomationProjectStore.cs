@@ -55,7 +55,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
                 var validation = await ValidateDirectoryAsync(directory, manifest, cancellationToken);
                 projects.Add(ToInfo(manifest, directory, validation));
             }
-            catch (Exception ex) when (ex is JsonException or InvalidDataException or IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 projects.Add(new AutomationProjectInfo(
                     Guid.Empty,
@@ -278,7 +278,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
             if (!string.Equals(manifest.Hashes.Project, ComputeManifestHash(manifest), StringComparison.OrdinalIgnoreCase))
                 errors.Add("project.json integrity hash does not match its canonical content.");
         }
-        catch (Exception ex) when (ex is JsonException or InvalidDataException or IOException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             errors.Add($"Project content is invalid: {ex.Message}");
         }
