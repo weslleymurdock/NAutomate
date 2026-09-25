@@ -13,7 +13,7 @@ public sealed class AutomationServiceAttribute(
     public string Version { get; } = version;
 }
 
-[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false)]
 public sealed class AutomationOperationAttribute(
     string id,
     string displayName,
