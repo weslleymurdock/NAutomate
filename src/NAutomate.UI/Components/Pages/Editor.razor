@@ -62,22 +62,22 @@
 
             <MudStack Spacing="1" Class="pa-2">
                 <MudText Typo="Typo.caption">Control flow</MudText>
-                                <div class="palette-drag" draggable="true" @ondragstart="BeginDragIf">
+                                <div class="palette-drag" draggable="true" @ondragstart="BeginDragIf" @ondragend="EndDrag">
                     <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.CallSplit" Disabled="@HasActiveDebugSession" OnClick="AddIf">IF / ELSE</MudButton>
                 </div>
-                <div class="palette-drag" draggable="true" @ondragstart="BeginDragFor">
+                <div class="palette-drag" draggable="true" @ondragstart="BeginDragFor" @ondragend="EndDrag">
                     <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Repeat" Disabled="@HasActiveDebugSession" OnClick="AddFor">FOR</MudButton>
                 </div>
-                <div class="palette-drag" draggable="true" @ondragstart="BeginDragForeach">
+                <div class="palette-drag" draggable="true" @ondragstart="BeginDragForeach" @ondragend="EndDrag">
                     <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Loop" Disabled="@HasActiveDebugSession" OnClick="AddForeach">FOREACH</MudButton>
                 </div>
-                <div class="palette-drag" draggable="true" @ondragstart="BeginDragWhile">
+                <div class="palette-drag" draggable="true" @ondragstart="BeginDragWhile" @ondragend="EndDrag">
                     <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Sync" Disabled="@HasActiveDebugSession" OnClick="AddWhile">WHILE</MudButton>
                 </div>
-                <div class="palette-drag" draggable="true" @ondragstart="BeginDragSet">
+                <div class="palette-drag" draggable="true" @ondragstart="BeginDragSet" @ondragend="EndDrag">
                     <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Edit" Disabled="@HasActiveDebugSession" OnClick="AddSet">SET VARIABLE</MudButton>
                 </div>
-                <div class="palette-drag" draggable="true" @ondragstart="BeginDragExit">
+                <div class="palette-drag" draggable="true" @ondragstart="BeginDragExit" @ondragend="EndDrag">
                     <MudButton FullWidth Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.StopCircle" Disabled="@HasActiveDebugSession" OnClick="AddExit">EXIT</MudButton>
                 </div>
 
@@ -89,7 +89,7 @@
             <MudStack Spacing="0">
                 @foreach (var module in Modules)
                 {
-                    <div class="palette-drag" draggable="true" @ondragstart="@(() => BeginDragModule(module.Id))">
+                    <div class="palette-drag" draggable="true" @ondragstart="@(() => BeginDragModule(module.Id))" @ondragend="EndDrag">
                         <MudButton FullWidth="true" Variant="Variant.Text" Class="method-item" StartIcon="@Icons.Material.Filled.Extension" Disabled="@HasActiveDebugSession" OnClick="@(() => AddModule(module))">
                             <span><span class="method-label">@module.DisplayName</span><span class="method-id">@module.Id</span></span>
                         </MudButton>
@@ -456,14 +456,13 @@
         _ => Color.Default
     };
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
         try
         {
             if (ProjectId is null)
             {
-                var created = await ProjectStore.CreateAsync("New project");
-                Navigation.NavigateTo($"/editor/{created.Id:D}", replace: true);
+                Navigation.NavigateTo("/", replace: true);
                 return;
             }
 
@@ -525,6 +524,11 @@
             return;
 
         _dragPayload = payload;
+    }
+
+    private void EndDrag()
+    {
+        _dragPayload = null;
     }
 
     private void BeginDragModule(string moduleId) => BeginDrag($"module:{moduleId}");
