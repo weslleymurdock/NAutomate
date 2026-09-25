@@ -90,7 +90,8 @@
                 {
                     <MudExpansionPanel Text="@group.Key"
                                        Icon="@ModuleFamilyIcon(group.Key)"
-                                       Expanded="@IsModuleGroupExpanded(group.Key)">
+                                       Expanded="@IsModuleGroupExpanded(group.Key)"
+                                       ExpandedChanged="@((bool expanded) => SetModuleGroupExpanded(group.Key, expanded))">
                         @foreach (var module in group)
                         {
                             <div class="palette-drag module-palette-item"
@@ -431,6 +432,7 @@
     private int _nextSequence = 1;
     private bool _showEnvironmentDialog;
     private bool _consoleExpanded;
+    private readonly Dictionary<string, bool> _moduleGroupExpanded = new(StringComparer.OrdinalIgnoreCase);
     private string? _dragPayload;
 
     private readonly List<EditorFlowStep> _steps = [];
@@ -462,8 +464,15 @@
             .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase);
 
     private bool IsModuleGroupExpanded(string family) =>
-        !string.IsNullOrWhiteSpace(_search) &&
-        ModuleGroups.Any(group => group.Key.Equals(family, StringComparison.OrdinalIgnoreCase));
+        !string.IsNullOrWhiteSpace(_search)
+            ? ModuleGroups.Any(group => group.Key.Equals(family, StringComparison.OrdinalIgnoreCase))
+            : _moduleGroupExpanded.TryGetValue(family, out var expanded) && expanded;
+
+    private void SetModuleGroupExpanded(string family, bool expanded)
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+            _moduleGroupExpanded[family] = expanded;
+    }
 
     private static string ModuleFamilyIcon(string family) => family.ToLowerInvariant() switch
     {
