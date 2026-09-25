@@ -465,7 +465,7 @@
 
         await EnvironmentService.DeleteAsync(_selectedEnvironmentId);
         var workflow = BuildWorkflow();
-        _environments = [.. await EnvironmentService.ListAsync(workflow.Name)];
+        _environments = [.. await EnvironmentService.ListAsync(workflow)];
 
         if (_environments.Count == 0)
         {
