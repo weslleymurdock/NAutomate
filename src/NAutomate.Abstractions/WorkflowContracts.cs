@@ -59,3 +59,18 @@ public sealed record ExecutionEvent(
     string? ModuleId = null,
     string? Message = null,
     string? StepId = null);
+
+/// <summary>Result of a workflow execution.</summary>
+public sealed record WorkflowExecutionResult(
+    WorkflowExecutionStatus Status,
+    string? ErrorMessage = null,
+    Exception? Exception = null);
+
+/// <summary>Possible statuses of a workflow execution.</summary>
+public enum WorkflowExecutionStatus
+{
+    Success,
+    Failure,
+    Cancelled,
+    Exception
+}

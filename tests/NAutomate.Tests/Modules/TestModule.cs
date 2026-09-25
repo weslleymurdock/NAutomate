@@ -11,6 +11,8 @@ internal sealed class TestModule(string id, List<string>? executed = null, bool 
         context.CancellationToken.ThrowIfCancellationRequested();
         executed?.Add(Descriptor.Id);
         if (failure)
+            return Task.FromResult(new ModuleExecutionResult(Descriptor.Id, Succeeded: false));
+        if (context.Step.Parameters.TryGetValue("throw", out var throwObj) && throwObj is bool shouldThrow && shouldThrow)
             throw new InvalidOperationException("test module failed");
         return Task.FromResult(new ModuleExecutionResult(Descriptor.Id));
     }
