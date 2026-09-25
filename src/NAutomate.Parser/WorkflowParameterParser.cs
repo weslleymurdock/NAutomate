@@ -87,6 +87,16 @@ public static class WorkflowParameterParser
     public static Type ResolveType(string typeName)
     {
         var normalized = typeName.Trim();
+        var aliases = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["string"] = typeof(string), ["bool"] = typeof(bool), ["boolean"] = typeof(bool),
+            ["byte"] = typeof(byte), ["short"] = typeof(short), ["int"] = typeof(int),
+            ["long"] = typeof(long), ["float"] = typeof(float), ["double"] = typeof(double),
+            ["decimal"] = typeof(decimal), ["guid"] = typeof(Guid), ["datetime"] = typeof(DateTime),
+            ["timespan"] = typeof(TimeSpan), ["uri"] = typeof(Uri), ["object"] = typeof(object)
+        };
+        if (aliases.TryGetValue(normalized, out var alias))
+            return alias;
 
         var type = Type.GetType(normalized, throwOnError: false)
             ?? AppDomain.CurrentDomain.GetAssemblies()
