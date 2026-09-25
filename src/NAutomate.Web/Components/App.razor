@@ -12,11 +12,11 @@
     <link rel="stylesheet" href="@Assets["NAutomate.Web.styles.css"]" />
     <ImportMap />
     <link rel="icon" type="image/ico" href="favicon.ico" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode=@RenderMode.InteractiveServer />
 </head>
 
 <body>
-    <Routes />
+    <Routes @rendermode=@RenderMode.InteractiveServer />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
