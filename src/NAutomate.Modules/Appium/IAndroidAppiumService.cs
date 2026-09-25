@@ -1,3 +1,7 @@
+using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Android;
+using OpenQA.Selenium.Appium.iOS;
+using OpenQA.Selenium.Appium.Enums;
 using NAutomate.Abstractions;
 
 namespace NAutomate.Modules.Appium;
