@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMudServices(configuration =>
 {
-    configuration.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopRight;
+    configuration.SnackbarConfiguration.PositionClass = MudBlazor.Defaults.Classes.Position.TopRight;
 });
 
 builder.Services.AddNAutomateUI(dependencies =>
