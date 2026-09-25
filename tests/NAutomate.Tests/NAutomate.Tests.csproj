@@ -31,6 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\NAutomate.Abstractions\NAutomate.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\NAutomate.Core\NAutomate.Core.csproj" />
+    <ProjectReference Include="..\..\src\NAutomate.Parser\NAutomate.Parser.csproj" />
     <ProjectReference Include="..\..\src\NAutomate.CLI\NAutomate.CLI.csproj" />
     <ProjectReference Include="..\..\src\NAutomate.Modules\NAutomate.Modules.csproj" />
   </ItemGroup>
