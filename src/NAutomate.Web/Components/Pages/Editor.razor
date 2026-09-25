@@ -2,11 +2,12 @@
 @rendermode InteractiveServer
 @using NAutomate.Abstractions
 @using NAutomate.Core
+@using NAutomate.Parser
 @inject IModuleRegistry ModuleRegistry
 @inject WorkflowEngine WorkflowEngine
 @inject IJSRuntime JS
 @implements IAsyncDisposable
-@inject IExecutionEnvironmentStore EnvironmentStore
+@inject IExecutionEnvironmentService EnvironmentService
 
 <PageTitle>Automation Editor</PageTitle>
 <MudStack Spacing="2" Class="editor-shell">
@@ -295,16 +296,11 @@
     private static string GetModuleFamily(ModuleDescriptor module) =>
         GetModuleFamily(module.Id);
 
-    private static string GetModuleFamily(string moduleId)
-    {
-        var parts = moduleId.Split('.', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length > 1
-            ? parts[0]
-            : moduleId;
-    }
+    private static string GetModuleFamily(string moduleId) =>
+        ModuleDescriptorParser.GetFamilyId(moduleId);
 
     private static string GetServiceGroupId(ModuleDescriptor module) =>
-        module.Services?.FirstOrDefault()?.Id ?? module.Id;
+        ModuleDescriptorParser.GetServiceGroupId(module);
 
     private bool HasActiveDebugSession =>
         _debugSession is not null &&
@@ -349,7 +345,7 @@
     protected override async Task OnInitializedAsync()
     {
         var workflow = BuildWorkflow();
-        _environments = [.. await EnvironmentStore.SynchronizeAsync(workflow)];
+        _environments = [.. await EnvironmentService.SynchronizeAsync(workflow)];
 
         if (_environments.Count == 0)
         {
@@ -433,7 +429,7 @@
             .Select(step => new WorkflowStep(
                 step.Id,
                 step.ModuleId,
-                step.Values.ToDictionary(x => x.Key, x => (object?)x.Value, StringComparer.Ordinal))).ToArray();
+                WorkflowParameterParser.Parse(step.Values, step.Parameters))).ToArray();
 
         return new AutomationWorkflow(
             WorkflowJson.CurrentSchemaVersion,
@@ -709,7 +705,7 @@
             Id = id;
             Title = title;
             Module = module;
-            ModuleId = module.Split(" · ", StringSplitOptions.None)[0];
+            ModuleId = ModuleDescriptorParser.GetFamilyId(module.Split(" · ", StringSplitOptions.None)[0]);
             OperationId = kind;
             Icon = icon;
             Kind = kind;
