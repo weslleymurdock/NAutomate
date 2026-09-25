@@ -349,7 +349,7 @@
 
         if (_environments.Count == 0)
         {
-            var environment = await EnvironmentStore.CreateAsync("Default", workflow);
+            var environment = await EnvironmentService.CreateAsync("Default", workflow);
             _environments = [environment];
         }
 
@@ -451,8 +451,8 @@
             return;
 
         var workflow = BuildWorkflow();
-        var environment = await EnvironmentStore.CreateAsync(_newEnvironmentName, workflow);
-        _environments = [.. await EnvironmentStore.ListAsync(workflow.Name)];
+        var environment = await EnvironmentService.CreateAsync(_newEnvironmentName, workflow);
+        _environments = [.. await EnvironmentService.ListAsync(workflow.Name)];
         _selectedEnvironmentId = environment.Id;
         _newEnvironmentName = string.Empty;
         await InvokeAsync(StateHasChanged);
@@ -463,13 +463,13 @@
         if (_selectedEnvironmentId is null)
             return;
 
-        await EnvironmentStore.DeleteAsync(_selectedEnvironmentId);
+        await EnvironmentService.DeleteAsync(_selectedEnvironmentId);
         var workflow = BuildWorkflow();
-        _environments = [.. await EnvironmentStore.ListAsync(workflow.Name)];
+        _environments = [.. await EnvironmentService.ListAsync(workflow.Name)];
 
         if (_environments.Count == 0)
         {
-            var environment = await EnvironmentStore.CreateAsync("Default", workflow);
+            var environment = await EnvironmentService.CreateAsync("Default", workflow);
             _environments = [environment];
         }
 
@@ -490,7 +490,7 @@
             [key] = value
         };
 
-        var saved = await EnvironmentStore.SaveAsync(
+        var saved = await EnvironmentService.SaveAsync(
             _selectedEnvironment with { Values = values },
             BuildWorkflow());
 
@@ -525,7 +525,7 @@
 
     private async Task SynchronizeEnvironmentsAsync()
     {
-        _environments = [.. await EnvironmentStore.SynchronizeAsync(BuildWorkflow())];
+        _environments = [.. await EnvironmentService.SynchronizeAsync(BuildWorkflow())];
 
         if (_selectedEnvironmentId is not null && !_environments.Any(x => x.Id == _selectedEnvironmentId))
             _selectedEnvironmentId = _environments.FirstOrDefault()?.Id;
