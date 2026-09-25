@@ -22,6 +22,7 @@ public sealed class SeleniumModuleTests
     {
         var modules = OfficialModules.GetModules();
 
-        Assert.NotEmpty(modules.Where(x => x.Descriptor.Id.StartsWith("selenium.", StringComparison.Ordinal)));
+        Assert.Contains(modules, module =>
+            module.Descriptor.Id.StartsWith("selenium.", StringComparison.Ordinal));
     }
 }
