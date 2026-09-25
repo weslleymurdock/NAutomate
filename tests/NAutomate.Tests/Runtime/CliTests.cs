@@ -5,6 +5,7 @@ using Xunit;
 using NAutomate.Core;
 using NAutomate.Abstractions;
 using NAutomate.Parser;
+using NAutomate.CLI;
 
 namespace NAutomate.Tests.Runtime;
 
@@ -21,7 +22,7 @@ public sealed class CliTests
             using var stdout = new StringWriter();
             using var stderr = new StringWriter();
 
-            var exitCode = await CliRunner.RunAsync(["run", path], stdout, stderr, TestContext.Current.CancellationToken);
+            var exitCode = await Runner.RunAsync(["run", path], stdout, stderr, TestContext.Current.CancellationToken);
 
             Assert.Equal(0, exitCode);
             Assert.Contains("[RUNNING] core.echo", stdout.ToString());
@@ -40,7 +41,7 @@ public sealed class CliTests
     {
         using var stdout = new StringWriter();
         using var stderr = new StringWriter();
-        Assert.NotEqual(0, await CliRunner.RunAsync([], stdout, stderr, TestContext.Current.CancellationToken));
+        Assert.NotEqual(0, await Runner.RunAsync([], stdout, stderr, TestContext.Current.CancellationToken));
         Assert.Contains("Usage:", stderr.ToString());
 
         var directory = Directory.CreateTempSubdirectory("nautomate-cli-");
@@ -51,7 +52,7 @@ public sealed class CliTests
             stdout.GetStringBuilder().Clear();
             stderr.GetStringBuilder().Clear();
 
-            Assert.NotEqual(0, await CliRunner.RunAsync(["run", path], stdout, stderr, TestContext.Current.CancellationToken));
+            Assert.NotEqual(0, await Runner.RunAsync(["run", path], stdout, stderr, TestContext.Current.CancellationToken));
             Assert.Contains("Error:", stderr.ToString());
             Assert.DoesNotContain("[SUCCESS]", stdout.ToString());
         }

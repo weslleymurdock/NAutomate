@@ -33,7 +33,7 @@ public sealed class ConditionalWorkflowTests
         new AutomationVariableDefinition("Counter", Type: "System.Int32", DefaultValue: 0));
 
         var sink = new RecordingSink();
-        var result = await new WorkflowEngine(Registry()).ExecuteAsync(workflow, sink);
+        var result = await new WorkflowEngine(Registry()).ExecuteAsync(workflow, sink, TestContext.Current.CancellationToken);
 
         Assert.Equal(WorkflowExecutionStatus.Success, result.Status);
         Assert.Equal(["0", "1", "2"], sink.Events.Where(x => x.Kind == "output").Select(x => x.Message));
@@ -55,10 +55,12 @@ public sealed class ConditionalWorkflowTests
         new AutomationVariableDefinition("Value", Type: "System.Int32", DefaultValue: 0));
 
         var sink = new RecordingSink();
-        var result = await new WorkflowEngine(Registry()).ExecuteAsync(workflow, sink);
+        var result = await new WorkflowEngine(Registry()).ExecuteAsync(workflow, sink, TestContext.Current.CancellationToken);
 
         Assert.Equal(WorkflowExecutionStatus.Success, result.Status);
-        Assert.Equal("greater", Assert.Single(sink.Events.Where(x => x.Kind == "output")).Message);
+        Assert.Collection(sink.Events.Where(x => x.Kind == "output"),
+            evt => Assert.Equal("greater", evt.Message)
+        );
         Assert.Contains(sink.Events, x => x.Kind == "branch-selected" && x.Message == "then");
     }
 

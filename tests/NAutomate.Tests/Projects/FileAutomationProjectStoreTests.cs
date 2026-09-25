@@ -12,7 +12,7 @@ public sealed class FileAutomationProjectStoreTests
         try
         {
             var store = new FileAutomationProjectStore(root);
-            var project = await store.CreateAsync("My Mobile Automation");
+            var project = await store.CreateAsync("My Mobile Automation", TestContext.Current.CancellationToken);
 
             Assert.False(project.IsValid);
             Assert.Contains(project.ValidationErrors, error => error.Contains("at least one step", StringComparison.OrdinalIgnoreCase));
@@ -23,11 +23,11 @@ public sealed class FileAutomationProjectStoreTests
             Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "env.json")));
             Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "project.json")));
 
-            var validation = await store.ValidateAsync(project.Id);
+            var validation = await store.ValidateAsync(project.Id, TestContext.Current.CancellationToken);
             Assert.False(validation.IsValid);
             Assert.Contains(validation.Errors, error => error.Contains("at least one step", StringComparison.OrdinalIgnoreCase));
 
-            var state = await store.LoadAsync(project.Id);
+            var state = await store.LoadAsync(project.Id, TestContext.Current.CancellationToken);
             Assert.Empty(state.Workflow.Steps);
         }
         finally
@@ -44,13 +44,13 @@ public sealed class FileAutomationProjectStoreTests
         try
         {
             var store = new FileAutomationProjectStore(root);
-            var project = await store.CreateAsync("Integrity");
+            var project = await store.CreateAsync("Integrity", TestContext.Current.CancellationToken);
 
             await File.AppendAllTextAsync(
                 Path.Combine(project.DirectoryPath, "automation.json"),
-                Environment.NewLine);
+                Environment.NewLine, TestContext.Current.CancellationToken);
 
-            var validation = await store.ValidateAsync(project.Id);
+            var validation = await store.ValidateAsync(project.Id, TestContext.Current.CancellationToken);
 
             Assert.False(validation.IsValid);
             Assert.Contains(validation.Errors, error => error.Contains("automation.json hash", StringComparison.OrdinalIgnoreCase));
@@ -69,13 +69,13 @@ public sealed class FileAutomationProjectStoreTests
         try
         {
             var store = new FileAutomationProjectStore(root);
-            var project = await store.CreateAsync("Delete me");
-            await File.WriteAllTextAsync(Path.Combine(project.DirectoryPath, "artifacts", "sample.txt"), "artifact");
+            var project = await store.CreateAsync("Delete me", TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(project.DirectoryPath, "artifacts", "sample.txt"), "artifact", TestContext.Current.CancellationToken);
 
-            await store.DeleteAsync(project);
+            await store.DeleteAsync(project, TestContext.Current.CancellationToken);
 
             Assert.False(Directory.Exists(project.DirectoryPath));
-            Assert.Empty(await store.ListAsync());
+            Assert.Empty(await store.ListAsync(TestContext.Current.CancellationToken));
         }
         finally
         {
@@ -91,14 +91,14 @@ public sealed class FileAutomationProjectStoreTests
         try
         {
             var store = new FileAutomationProjectStore(root);
-            var project = await store.CreateAsync("Repair me");
+            var project = await store.CreateAsync("Repair me", TestContext.Current.CancellationToken);
             File.Delete(Path.Combine(project.DirectoryPath, "project.json"));
 
-            var broken = (await store.ListAsync()).Single();
+            var broken = (await store.ListAsync(TestContext.Current.CancellationToken)).Single();
             Assert.False(broken.IsValid);
             Assert.Equal(Guid.Empty, broken.Id);
 
-            var repaired = await store.RepairAsync(broken);
+            var repaired = await store.RepairAsync(broken, TestContext.Current.CancellationToken);
 
             Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "project.json")));
             Assert.Equal(project.Id, repaired.Id);

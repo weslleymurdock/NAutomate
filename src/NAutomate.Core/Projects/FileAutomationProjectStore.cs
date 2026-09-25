@@ -238,7 +238,7 @@ public sealed class FileAutomationProjectStore(string projectsDirectory) : IAuto
         {
             var automationJson = await File.ReadAllTextAsync(Path.Combine(directory, AutomationFileName), cancellationToken);
             var workflow = WorkflowJson.Deserialize(automationJson);
-            WorkflowJson.Validate(workflow, requireSteps: false);
+            WorkflowJson.Validate(workflow);
             if (requireExecutable && (workflow.Steps is null || workflow.Steps.Count == 0))
                 errors.Add("Workflow must contain at least one step.");
 
