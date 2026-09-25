@@ -67,3 +67,29 @@ Persisted AutomationEnvironment values remain separate from mutable workflow sta
 WorkflowExecutionSession remains the UI-facing execution-control boundary. The runtime itself does not depend on the debugger. Control-flow execution happens recursively in Core, and runtime events identify the relevant step IDs so presentation hosts can observe nested execution.
 
 The current editor does not construct control-flow nodes visually; JSON/runtime support is intentionally ahead of the visual editor.
+
+
+## Shared UI
+
+The reusable application UI is implemented in src/NAutomate.UI as a Razor Class Library. The Web host references the RCL, and a MAUI Blazor Hybrid host can reference the same project instead of maintaining a second copy of the workflow editor.
+
+The RCL owns:
+
+- workflow editor and debugger pages;
+- workflow tree components;
+- drag-and-drop workflow composition;
+- environment and global-variable dialog;
+- shared navigation/layout components;
+- startup software-dependency validation and notifications.
+
+Host-specific capabilities are provided through dependency injection. The shared UI must not reference MAUI APIs or Web-host APIs directly.
+
+Routable components from the RCL are exposed to each host through the host router's additional assemblies.
+
+## Startup software dependencies
+
+Hosts register the software dependencies required by their enabled modules through SoftwareDependencyCatalog. NAutomate.UI validates registered executables when the host starts and publishes the results through DependencyStatusStore.
+
+Only dependencies registered by the host/modules are validated. This prevents unrelated tools such as Node.js, npm, Docker, or PowerShell from generating warnings unless they are actually configured as dependencies for the running host.
+
+Required dependencies that are unavailable are presented as persistent warning notifications in the top-right notification area.
